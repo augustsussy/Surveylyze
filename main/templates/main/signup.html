@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Signup</title>
+  <link rel="stylesheet" href="{% static 'main/css/auth.css' %}">
+</head>
+<body>
+  <section class="auth-container">
+    <div class="form-box">
+      <h2>Signup</h2>
+      <form method="POST">
+        {% csrf_token %}
+        <div class="name-group">
+          <input type="text" name="first_name" placeholder="First Name" required>
+          <input type="text" name="last_name" placeholder="Last Name" required>
+        </div>
+
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password1" placeholder="Password" required>
+        <input type="password" name="password2" placeholder="Repeat Password" required>
+
+        <select name="section" required>
+          <option value="">Select Section</option>
+          <option value="BSIT-4A">BSIT-4A</option>
+          <option value="BSIT-4B">BSIT-4B</option>
+          <option value="BSIT-4C">BSIT-4C</option>
+          <option value="BSIT-4D">BSIT-4D</option>
+          <option value="BSIT-4E">BSIT-4E</option>
+          <option value="BSIT-4F">BSIT-4F</option>
+          <option value="BSIT-4G">BSIT-4G</option>
+          <option value="BSIT-4H">BSIT-4H</option>
+          <option value="BSIT-4I">BSIT-4I</option>
+          <option value="BSIT-4J">BSIT-4J</option>
+        </select>
+
+        <button type="submit" class="btn">Signup</button>
+      </form>
+      <p class="redirect">Already have an account? <a href="{% url 'login' %}">Login</a></p>
+    </div>
+  </section>
+  <footer>© 2025 SURVEYLYZE | All rights reserved.</footer>
+</body>
+</html>

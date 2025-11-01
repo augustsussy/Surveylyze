@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SURVEYLYZE | Custom Survey Platform</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'main/css/style.css' %}" />
+</head>
+<body>
+  <!-- Navigation -->
+  <header class="navbar">
+    <div class="logo">
+      <img src="{% static 'main/images/logo.png' %}" alt="Surveylyze Logo">
+      <h1>SURVEYLYZE</h1>
+    </div>
+    <nav>
+      <ul>
+        <li><a href="{% url 'signup' %}" class="signup-link">Sign Up</a></li>
+
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-content">
+      <h2>SURVEYLYZE</h2>
+      <p>Insight through every response.<br>
+      <span>A Custom Survey and Analytics Platform for Students</span></p>
+      <button class="btn-primary">Get Started</button>
+    </div>
+    <div class="hero-illustration">
+      <img src="{% static 'main/images/illustration.png' %}" alt="Survey Illustration">
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <h3>FEATURES</h3>
+    <div class="feature-container">
+      <div class="feature-card">
+        <div class="icon">📋</div>
+        <div class="feature-text">
+          <h4>Dynamic Survey Form</h4>
+          <p>Support for multiple question types: multiple-choice, Likert scale, short answer. Client-side validation and progress indicator.</p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="icon">📄</div>
+        <div class="feature-text">
+          <h4>Submission & History</h4>
+          <p>Submit once per survey, view your past survey responses in a table.</p>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="icon">📑</div>
+        <div class="feature-text">
+          <h4>Assigned Survey List</h4>
+          <p>View only surveys currently open to your class/section.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section class="about" id="about">
+    <h3>ABOUT US</h3>
+    <div class="team">
+
+      <div class="member">
+        <img src="{% static 'main/images/Zhongli.png' %}" alt="Zhongli" class="avatar">
+        <h4>Zhongli</h4>
+        <p>Geo Archon</p>
+      </div>
+
+      <div class="member">
+        <img src="{% static 'main/images/Furina.png' %}" alt="Furina" class="avatar">
+        <h4>Furina</h4>
+        <p>Fake Hydro Archon</p>
+      </div>
+
+      <div class="member">
+        <img src="{% static 'main/images/Venti.png' %}" alt="Venti" class="avatar">
+        <h4>Venti</h4>
+        <p>Anemo Archon</p>
+      </div>
+
+      <div class="member">
+        <img src="{% static 'main/images/Raiden Shogun.png' %}" alt="Raiden Shogun" class="avatar">
+        <h4>Raiden Shogun</h4>
+        <p>Electro Archon</p>
+      </div>
+
+      <div class="member">
+        <img src="{% static 'main/images/Nahida.png' %}" alt="Nahida" class="avatar">
+        <h4>Nahida</h4>
+        <p>Dendro Archon</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <footer>© 2025 SURVEYLYZE | All rights reserved.</footer>
+  </footer>
+
+  <script src="{% static 'main/Javascript/script.js' %}"></script>
+</body>
+</html>
