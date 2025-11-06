@@ -37,9 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'main',
+    'Surveylyze_app.apps.MainConfig',
 ]
-
+ 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -117,7 +117,7 @@ USE_TZ = True
 import os
 STATIC_URL = 'Static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'main/Static'),
+    os.path.join(BASE_DIR, 'Surveylyze_app/Static'),
 ]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
