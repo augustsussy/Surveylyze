@@ -1,4 +1,7 @@
 from django.contrib import admin
-from .models import Survey
+from . import models
 
-admin.site.register(Survey)
+admin.site.register(models.Survey)
+admin.site.register(models.Teacher)
+
+
