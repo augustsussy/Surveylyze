@@ -10,8 +10,8 @@ def login_view(request):
     return render(request, 'main/login.html')
 
 def dashboard(request):
-    template = 'dashboard.html'
-    return render(request, 'main/dashboard.html')
+    template = 'main/dashboard.html'
+    return render(request, template)
 
 def survey(request):
     return render(request, 'main/survey.html')
