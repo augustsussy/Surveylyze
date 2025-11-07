@@ -1,0 +1,172 @@
+:root{
+  --brand:#B57EDC;
+  --g1:#E5D0EE;
+  --g2:#D8B7E6;
+  --ink:#1f2937;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --line:#e9e4f2;
+  --sticky-offset: 72px
+}
+
+*{box-sizing:border-box}
+html, body { min-height: 100%; }
+body { min-height: 100vh; }
+body{
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:linear-gradient(180deg,var(--g1) 0%, var(--g2) 100%);
+  color:var(--ink);
+}
+
+.shell{max-width:1100px;margin:0 auto;padding:10px 12px 18px}
+.shell, .grid { overflow: visible; }
+
+/* Top bar */
+.topbar{
+  display:flex;justify-content:flex-end;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.25);
+  border:1px solid var(--line);backdrop-filter:blur(6px)
+}
+
+.topbar{
+  position: sticky;
+  top: 8px;                /* small breathing room from very top */
+  z-index: 1000;           /* above cards & side panels */
+}
+.actions{display:flex;gap:8px;align-items:center}
+
+.btn{
+  border:1px solid var(--line);background:#fff;color:#3f3f46;padding:10px 14px;
+  border-radius:12px;font-weight:600;display:inline-flex;align-items:center;gap:8px;
+  cursor:pointer;transition:.15s ease
+}
+.btn:hover{transform:translateY(-1px)}
+.btn-primary{background:var(--brand);color:#fff;border-color:transparent}
+.btn-ghost{background:rgba(255,255,255,.55)}
+.split{position:relative;display:flex}
+.split-caret{padding:10px 10px;border-left:0;border-top-left-radius:0;border-bottom-left-radius:0}
+.split>.btn:first-child{border-top-right-radius:0;border-bottom-right-radius:0}
+.menu{ z-index: 1100; }
+.menu{
+  position:absolute;right:0;top:110%;list-style:none;margin:0;padding:6px;
+  background:#fff;border:1px solid var(--line);border-radius:10px;display:none;min-width:160px
+}
+.menu.show{display:block}
+.menu-item{width:100%;background:transparent;border:0;padding:10px 10px;text-align:left;border-radius:8px;cursor:pointer}
+.menu-item:hover{background:#f6f3fb}
+
+/* Layout */
+.grid{margin-top:12px;display:grid;grid-template-columns:260px 1fr 300px;gap:18px}
+.panel{background:rgba(255,255,255,.65);border:1px solid var(--line);border-radius:16px;padding:14px}
+.panel-title{font-weight:700;margin-bottom:10px;font-size:.95rem}
+
+/* Toolbox (buttons draggable) */
+.toolbox,
+.settings{
+  position: sticky;
+  top: var(--sticky-offset);
+  align-self: start;       /* ensure the sticky box uses its own height */
+  z-index: 900;
+}.tool{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:#fff;border:1px dashed #d9cceb;border-radius:12px;
+  cursor:grab;margin-bottom:10px;user-select:none
+}
+.tool:active{cursor:grabbing}
+.tool:hover{background:#faf7ff}
+
+.topbar.is-stuck{ box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+
+/* Canvas */
+.canvas-inner{min-height:320px}
+.q-card{
+  background:#fff;border:2px solid transparent;border-radius:16px;padding:18px;margin:14px 6px;
+  box-shadow:0 6px 24px rgba(109,70,170,.08)
+}
+.q-card.dragging{opacity:.6}
+.q-title{font-weight:700;margin-bottom:8px}
+.q-actions{display:flex;gap:6px;margin-top:12px}
+.iconbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 8px;cursor:pointer}
+.iconbtn:hover{background:#f6f3fb}
+.ghost{border:2px dashed #c9b3e8;border-radius:16px;height:70px;margin:14px 6px}
+
+/* Inputs inside cards */
+.input{width:100%;border:1px solid #e5d9f4;border-radius:10px;padding:10px 12px;outline:0}
+.textarea{width:100%;min-height:72px;border:1px solid #e5d9f4;border-radius:10px;padding:10px 12px;outline:0;resize:vertical}
+.mc-opt{display:flex;align-items:center;gap:10px;margin-top:8px}
+.mc-dot{width:14px;height:14px;border:2px solid #c7b4e6;border-radius:999px}
+.star-row{display:flex;gap:8px;margin-top:8px}
+.star{font-size:24px;color:#c7b4e6}
+
+/* Settings (single, centered icons) */
+.field{position:relative}
+.field.with-icon select,
+.field.with-icon input[type="date"]{
+  width:100%;border:1px solid #e2d8f2;background:#fff;border-radius:12px;
+  padding:10px 40px 10px 12px; outline:0; appearance:none;
+}
+/* Hide native calendar indicator (avoid duplicate) but keep picker functional via JS */
+.field.with-icon input[type="date"]::-webkit-calendar-picker-indicator{
+  opacity:0; display:block; width:20px; height:20px;
+}
+
+.field-icon{
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  color:#7c8596; font-size:18px; pointer-events:auto; /* allow clicks on date icon */
+}
+
+.row-inline{display:flex; align-items:center; justify-content:space-between; margin-top:12px}
+.label{font-size:.9rem; color:#595f6b; margin-top:12px; margin-bottom:6px; display:block}
+
+/* Toggle */
+.switch{position:relative;display:inline-block;width:48px;height:28px;vertical-align:middle}
+.switch input{display:none}
+.slider{position:absolute;cursor:pointer;inset:0;background:#e8def7;border-radius:999px;transition:.15s ease}
+.slider:before{content:"";position:absolute;height:20px;width:20px;left:4px;top:4px;background:#fff;border-radius:50%;transition:.15s ease;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.switch input:checked + .slider{background:var(--brand)}
+.switch input:checked + .slider:before{transform:translateX(20px)}
+
+/* Footer */
+/* Sticky footer like the topbar */
+.footer{
+  position: sticky;
+  bottom: 8px;               /* same breathing room as the topbar’s top: 8px */
+  z-index: 950;
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  background: rgba(255,255,255,.25);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  backdrop-filter: blur(6px);
+}
+
+/* Modal */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(17,24,39,.4);
+  display:grid; place-items:center; z-index:9999;
+  opacity:0; pointer-events:none; transition:opacity .18s ease;
+}
+.modal-overlay.show{ opacity:1; pointer-events:auto; }
+
+.modal{
+  width:min(520px,92vw); background:#fff; border-radius:16px; border:1px solid #eee;
+  overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.25);
+  transform:translateY(6px); transition:transform .18s ease;
+}
+.modal-overlay.show .modal{ transform:translateY(0); }
+
+.modal-header{padding:14px 16px; background:#faf7ff; border-bottom:1px solid #f0e9fb}
+.modal-title{font-weight:700}
+.modal-body{padding:16px}
+.modal-footer{padding:12px 16px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #f0e9fb}
+
+
+/* Responsive */
+@media (max-width:1024px){
+  .grid{grid-template-columns:1fr}
+  .settings{order:3}
+}
