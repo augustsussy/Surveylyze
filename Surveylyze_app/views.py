@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from . import models
 def landing_page(request):
-    return render(request, 'main/landing.html')
+    return render(request, 'main/landing.htmlhi')
 
 def signup(request):
     return render(request, 'main/signup.html')
