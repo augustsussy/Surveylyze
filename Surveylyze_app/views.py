@@ -34,40 +34,35 @@ def landing_page(request):
 
 
 def login_view(request):
+    if request.user.is_authenticated:
+        # If already logged in, redirect based on role
+        if request.user.is_superuser or request.user.is_staff:
+            return redirect("analytics_admin")
+        else:
+            return redirect("dashboard")
 
     if request.method == "POST":
-        email_input = (request.POST.get("email") or "").strip().lower()
+        email = (request.POST.get("email") or "").strip().lower()
         password = (request.POST.get("password") or "").strip()
 
-        user = None
-
-        # Case 1: accounts created with username=email
-        user = authenticate(request, username=email_input, password=password)
-
-        # Case 2: accounts whose username != email, but email matches
-        if user is None:
-            try:
-                u = User.objects.get(email__iexact=email_input)
-                user = authenticate(request, username=u.username, password=password)
-            except User.DoesNotExist:
-                user = None
+        # Use email as username for authentication
+        user = authenticate(request, username=email, password=password)
 
         if user is not None:
             if not user.is_active:
                 messages.error(request, "Your account is inactive.")
                 return redirect("login")
+
             login(request, user)
 
-            next_url = request.POST.get("next") or request.GET.get("next")
-            if next_url and url_has_allowed_host_and_scheme(next_url, {request.get_host()}):
-                return redirect(next_url)
-            return redirect("dashboard")
+            # ✅ Redirect based on role
+            if user.is_superuser or user.is_staff:
+                return redirect("analytics_admin")  # Admin or Teacher
+            else:
+                return redirect("dashboard")  # Student
 
-        # Helpful messages
-        if User.objects.filter(email__iexact=email_input).exists() or User.objects.filter(username__iexact=email_input).exists():
-            messages.error(request, "Incorrect password.")
-        else:
-            messages.error(request, "No account found with that email.")
+        # Failed login
+        messages.error(request, "Invalid email or password.")
         return redirect("login")
 
     return render(request, "main/login.html")
@@ -155,3 +150,8 @@ def addStudentForm(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+def analytics_admin(request):
+    template = 'main/analytics_admin.html'
+    context = {'title': 'Admin Analytics'}
+    return render(request, template, context)
