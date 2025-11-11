@@ -18,7 +18,7 @@
     <div class="profile-info">
       <h4>{{ user.first_name }} {{ user.last_name }}</h4>
       <p>ID: {{ user.id }}</p>
-      <p>Section: {{ user.profile.section }}</p>
+      <p>Section: {{ user.student_profile.class_section.class_name }}</p>
     </div>
     <div class="icons">
       <i data-lucide="bell"></i>
@@ -39,6 +39,15 @@
       <i data-lucide="user-cog"></i>
       <span>Settings</span>
     </a>
+
+    <!-- ✅ Logout Button -->
+    <form action="{% url 'logout' %}" method="post" class="logout-form">
+      {% csrf_token %}
+      <button type="submit" class="menu-item logout-btn">
+        <i data-lucide="log-out"></i>
+        <span>Logout</span>
+      </button>
+    </form>
   </nav>
 </aside>
 
