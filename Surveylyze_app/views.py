@@ -155,3 +155,12 @@ def analytics_admin(request):
     template = 'main/analytics_admin.html'
     context = {'title': 'Admin Analytics'}
     return render(request, template, context)
+
+def surveybuilder(request):
+    sections = models.ClassSection.objects.all().order_by("year_level", "class_name")
+    template = 'main/surveyBuilder_admin.html'
+    context = {
+        'title' : "Survey Builder",
+        'sections' : sections
+    }
+    return render(request, template, context)

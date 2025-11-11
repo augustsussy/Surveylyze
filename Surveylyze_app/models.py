@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Survey(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -13,11 +14,13 @@ class Survey(models.Model):
 
 class Teacher(models.Model):
     teacher_id = models.AutoField(primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='teacher_profile')
+
     lastname = models.CharField(max_length=50)
     firstname = models.CharField(max_length=50)
     middlename = models.CharField(max_length=50, blank=True, null=True)
     email_address = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)
+
 
 
 class Student(models.Model):
