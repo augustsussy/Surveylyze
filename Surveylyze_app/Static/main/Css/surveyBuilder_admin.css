@@ -163,6 +163,39 @@ body{
 .modal-title{font-weight:700}
 .modal-body{padding:16px}
 .modal-footer{padding:12px 16px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #f0e9fb}
+/* === Make Settings text fields look like question boxes === */
+.settings .field input[type="text"],
+.settings .field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5d9f4;          /* same as .input/.textarea */
+  border-radius: 10px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  outline: 0;
+  box-sizing: border-box;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+/* Match input height to your other controls */
+.settings .field input[type="text"] {
+  height: 44px;
+  line-height: 1.2;
+}
+
+/* Textarea sizing similar to card textarea */
+.settings .field textarea {
+  min-height: 72px;
+  resize: vertical;                    /* allow vertical resize only */
+}
+
+/* Focus state like the question input */
+.settings .field input[type="text"]:focus,
+.settings .field textarea:focus {
+  border-color: #c9b3e8;
+  box-shadow: 0 0 0 3px rgba(185, 157, 236, 0.25);
+}
 
 
 /* Responsive */

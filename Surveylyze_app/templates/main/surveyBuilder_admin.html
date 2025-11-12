@@ -6,10 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Survey Builder</title>
 
+  <!-- Fonts & Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="{% static 'main/Css/surveyBuilder_admin.css' %}">
+  <!-- Styles -->
+  <link rel="stylesheet" href="{% static 'main/css/surveyBuilder_admin.css' %}">
 </head>
 <body>
   <div class="shell">
@@ -33,7 +35,7 @@
       <aside id="toolbox" class="panel toolbox">
         <div class="panel-title"><i class="bi bi-grid-3x3-gap me-1"></i>Question Toolbox</div>
 
-        <!-- ✅ Removed Paragraph button -->
+        <!-- Tools -->
         <button class="tool" draggable="true" data-type="multiple_choice">
           <i class="bi bi-ui-radios-grid"></i> Multiple Choice
         </button>
@@ -55,35 +57,66 @@
         <div class="breadcrumbs">Dashboard • Survey • Builder</div>
         <h3>Survey Settings</h3>
 
-        <label class="label">Assign to</label>
-        <div class="field with-icon">
-<select id="assignTo" name="assignTo" required>
-  <option value="">— Select Section —</option>
-  {% for section in sections %}
-    <option value="{{ section.class_id }}">
-      {{ section.class_name }} (Year {{ section.year_level }})
-    </option>
-  {% empty %}
-    <option disabled>No sections available</option>
-  {% endfor %}
-</select>
+        <!-- You can wrap in a form if you plan to POST -->
+        <form id="surveySettingsForm" method="post" action="">
+          {% csrf_token %}
 
-          <i class="bi bi-chevron-down field-icon"></i>
-        </div>
+          <!-- Survey Title -->
+<label class="label" for="surveyTitle">Survey Title</label>
+<div class="field">
+  <input
+    type="text"
+    id="surveyTitle"
+    name="title"
+    class="control"
+    autocomplete="off"
+    required
+  >
+</div>
 
-        <label class="label">Due Date</label>
-        <div class="field with-icon">
-          <input type="date" id="dueDate">
-          <i id="dateIcon" class="bi bi-calendar3 field-icon"></i>
-        </div>
+<!-- Survey Description -->
+<label class="label" for="surveyDescription">Description</label>
+<div class="field">
+  <textarea
+    id="surveyDescription"
+    name="description"
+    class="control"
+    rows="4"
+  ></textarea>
+</div>
 
-        <div class="row-inline">
-          <span class="label m-0">Status</span>
-          <label class="switch">
-            <input type="checkbox" id="statusToggle">
-            <span class="slider"></span>
-          </label>
-        </div>
+          <!-- Assign To (Class Sections) -->
+          <label class="label">Assign to</label>
+          <div class="field with-icon">
+            <select id="assignTo" name="assignTo" required>
+              <option value="">— Select Section —</option>
+              {% for section in sections %}
+                <option value="{{ section.class_id }}">
+                  {{ section.class_name }} (Year {{ section.year_level }})
+                </option>
+              {% empty %}
+                <option disabled>No sections available</option>
+              {% endfor %}
+            </select>
+            <i class="bi bi-chevron-down field-icon"></i>
+          </div>
+
+          <!-- Due Date -->
+          <label class="label" for="dueDate">Due Date</label>
+          <div class="field with-icon">
+            <input type="date" id="dueDate" name="dueDate">
+            <i id="dateIcon" class="bi bi-calendar3 field-icon"></i>
+          </div>
+
+          <!-- Status -->
+          <div class="row-inline">
+            <span class="label m-0">Status</span>
+            <label class="switch">
+              <input type="checkbox" id="statusToggle" name="status">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </form>
       </aside>
     </div>
 
@@ -112,6 +145,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="{% static 'main/Javascript/surveyBuilder_admin.js' %}"></script>
 </body>
 </html>

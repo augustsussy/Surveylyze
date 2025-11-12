@@ -37,3 +37,18 @@ class ClassSection(models.Model):
     class_id = models.CharField(max_length=50, primary_key=True,name='class_id')
     class_name = models.CharField(max_length=50,name='class_name')
     year_level = models.IntegerField(name='year_level')
+
+class Survey(models.Model):
+    survey_id = models.AutoField(primary_key=True)
+    teacher = models.ForeignKey(
+        "Teacher", on_delete=models.CASCADE, related_name="surveys"
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, choices=[
+        ('draft', 'Draft'),
+        ('published', 'Published'),
+        ('closed', 'Closed'),
+    ], default='draft')
+    created_date = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateField(blank=True, null=True)
