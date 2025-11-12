@@ -15,20 +15,42 @@
 </head>
 <body>
   <div class="shell">
-    <!-- Top bar -->
-    <div class="topbar">
-      <div class="actions">
-        <button id="btnNew" class="btn btn-ghost"><i class="bi bi-plus-lg"></i> New survey</button>
-        <button id="btnSave" class="btn btn-primary">Save Draft</button>
-        <div class="split">
-          <button id="btnPublish" class="btn btn-primary">Publish Survey</button>
-          <button class="btn btn-primary split-caret" id="btnMenu"><i class="bi bi-caret-down-fill"></i></button>
-          <ul class="menu" id="menu">
-            <li><button id="btnExport" class="menu-item"><i class="bi bi-braces"></i> Export JSON</button></li>
-          </ul>
-        </div>
-      </div>
+ <div class="topbar">
+  <div class="actions">
+    <button id="btnNew" class="btn btn-ghost"><i class="bi bi-plus-lg"></i> New survey</button>
+
+    <!-- Save as draft -->
+    <button
+      id="btnSave"
+      class="btn btn-primary"
+      type="submit"
+      form="surveySettingsForm"
+      name="action"
+      value="draft">
+      Save Draft
+    </button>
+
+    <div class="split">
+      <!-- Publish -->
+      <button
+        id="btnPublish"
+        class="btn btn-primary"
+        type="submit"
+        form="surveySettingsForm"
+        name="action"
+        value="publish">
+        Publish Survey
+      </button>
+
+      <button class="btn btn-primary split-caret" id="btnMenu"><i class="bi bi-caret-down-fill"></i></button>
+      <ul class="menu" id="menu">
+        <li><button id="btnExport" class="menu-item"><i class="bi bi-braces"></i> Export JSON</button></li>
+      </ul>
     </div>
+  </div>
+</div>
+
+
 
     <div class="grid">
       <!-- Toolbox (buttons are draggable) -->
@@ -58,8 +80,9 @@
         <h3>Survey Settings</h3>
 
         <!-- You can wrap in a form if you plan to POST -->
-        <form id="surveySettingsForm" method="post" action="">
-          {% csrf_token %}
+      <form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
+  {% csrf_token %}
+
 
           <!-- Survey Title -->
 <label class="label" for="surveyTitle">Survey Title</label>

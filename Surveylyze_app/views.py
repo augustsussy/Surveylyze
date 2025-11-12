@@ -1,32 +1,19 @@
-from django.shortcuts import render
-from . import models
-from django.http import HttpResponseRedirect
-from django.urls import reverse
+from datetime import datetime
+
 from django.contrib import messages
-from django.db import IntegrityError, transaction
-from django.shortcuts import redirect, get_object_or_404
-from django.contrib.auth.models import User
-from django.contrib import messages
-from django.contrib.auth import authenticate, login
-from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
-from django.contrib import messages
-from django.contrib.auth import authenticate, login, get_user_model
-from django.shortcuts import render, redirect
-from django.utils.http import url_has_allowed_host_and_scheme
-User = get_user_model()
-from django.contrib import messages
-from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.shortcuts import redirect, get_object_or_404
+from django.db import IntegrityError, transaction
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
+
 from . import models
 
-
-from .models import ClassSection
+User = get_user_model()
 
 
 def landing_page(request):
@@ -164,3 +151,60 @@ def surveybuilder(request):
         'sections' : sections
     }
     return render(request, template, context)
+
+def survey_builder(request):
+    # Only staff/teachers should use this page (optional)
+    if not request.user.is_staff and not request.user.is_superuser:
+        messages.error(request, "You don't have access to the survey builder.")
+        return redirect("dashboard")
+
+    sections = models.ClassSection.objects.all().order_by("year_level", "class_name")
+
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        description = (request.POST.get("description") or "").strip() or None
+        due_raw = request.POST.get("dueDate")
+        section_id = request.POST.get("assignTo")  # we’ll use this when you add assignments
+        action = request.POST.get("action")        # "draft" or "publish" from the buttons
+
+        # status: button decides, fallback to toggle if you prefer
+        status = "published" if action == "publish" else "draft"
+
+        # parse due date
+        due_date = None
+        if due_raw:
+            try:
+                due_date = datetime.strptime(due_raw, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Invalid due date format.")
+                return redirect("survey_builder")
+
+        # get Teacher linked to this user
+        try:
+            # if you used OneToOneField(User) named 'teacher_profile'
+            teacher = request.user.teacher_profile
+        except Exception:
+            # or fetch by user FK if you named it differently
+            teacher = get_object_or_404(models.Teacher, user=request.user)
+
+        # create the survey
+        survey = models.Survey.objects.create(
+            teacher=teacher,
+            title=title,
+            description=description,
+            status=status,
+            due_date=due_date,
+        )
+
+        # TODO: When you’re ready, create a SurveyAssignment here
+        # if section_id:
+        #     section = get_object_or_404(models.ClassSection, pk=section_id)
+        #     models.SurveyAssignment.objects.create(survey=survey, class_section=section)
+
+        messages.success(request, f"Survey “{survey.title}” saved as {survey.status}.")
+        return redirect("survey_builder")  # or redirect to a survey detail page
+
+    return render(request, "main/surveyBuilder_admin.html", {
+        "sections": sections,
+        "title": "Survey Builder",
+    })

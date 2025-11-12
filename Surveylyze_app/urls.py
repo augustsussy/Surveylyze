@@ -12,5 +12,6 @@ urlpatterns = [
 path('logout/', views.logout_view, name='logout'),
 path('analyticsadmin/', views.analytics_admin, name='analytics_admin'),
 path('surveybuilder/', views.surveybuilder, name='surveybuilder'),
+    path("survey-builder/", views.survey_builder, name="survey_builder"),
 
 ]
