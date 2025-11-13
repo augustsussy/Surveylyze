@@ -46,3 +46,36 @@ class Survey(models.Model):
     ], default='draft')
     created_date = models.DateTimeField(auto_now_add=True)
     due_date = models.DateField(blank=True, null=True)
+
+
+class Question(models.Model):
+    question_id = models.AutoField(primary_key=True)
+    survey = models.ForeignKey(
+        Survey,
+        on_delete=models.CASCADE,
+        related_name="questions"
+    )
+    question = models.TextField()
+    question_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("mcq", "Multiple Choice"),
+            ("likert", "Likert Scale"),
+            ("short_answer", "Short Answer"),
+        ],
+    )
+    order_number = models.PositiveIntegerField(default=1)
+
+class SurveyAssignment(models.Model):
+    assignment_id = models.AutoField(primary_key=True)
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="assignments")
+    class_section = models.ForeignKey(ClassSection, on_delete=models.CASCADE, related_name="survey_assignments")
+
+class Option(models.Model):
+    option_id = models.AutoField(primary_key=True)
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="options"
+    )
+    option_text = models.CharField(max_length=255)

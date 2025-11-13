@@ -12,97 +12,144 @@
 <body>
   <section class="dashboard">
     <!-- Hover Sidebar -->
-   <aside class="sidebar">
-  <div class="profile-card">
-    <img src="{% static 'main/images/profile.png' %}" alt="Profile" class="avatar">
-    <div class="profile-info">
-      <h4>{{ user.first_name }} {{ user.last_name }}</h4>
-      <p>ID: {{ user.id }}</p>
-      <p>Section: {{ user.student_profile.class_section.class_name }}</p>
-    </div>
-    <div class="icons">
-      <i data-lucide="bell"></i>
-      <i data-lucide="settings"></i>
-    </div>
-  </div>
+    <aside class="sidebar">
+      <div class="profile-card">
+        <img src="{% static 'main/images/profile.png' %}" alt="Profile" class="avatar">
+        <div class="profile-info">
+          <h4>{{ user.first_name }} {{ user.last_name }}</h4>
+          <p>ID: {{ user.id }}</p>
+          <p>Section: {{ user.student_profile.class_section.class_name }}</p>
+        </div>
+        <div class="icons">
+          <i data-lucide="bell"></i>
+          <i data-lucide="settings"></i>
+        </div>
+      </div>
 
-  <nav class="menu">
-    <a href="#" class="menu-item">
-      <i data-lucide="bar-chart-3"></i>
-      <span>Response History</span>
-    </a>
-    <a href="#" class="menu-item">
-      <i data-lucide="clipboard-list"></i>
-      <span>Assigned Surveys</span>
-    </a>
-    <a href="#" class="menu-item">
-      <i data-lucide="user-cog"></i>
-      <span>Settings</span>
-    </a>
+      <nav class="menu">
+        <a href="#" class="menu-item">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Response History</span>
+        </a>
+        <a href="#" class="menu-item">
+          <i data-lucide="clipboard-list"></i>
+          <span>Assigned Surveys</span>
+        </a>
+        <a href="#" class="menu-item">
+          <i data-lucide="user-cog"></i>
+          <span>Settings</span>
+        </a>
 
-    <!-- ✅ Logout Button -->
-    <form action="{% url 'logout' %}" method="post" class="logout-form">
-      {% csrf_token %}
-      <button type="submit" class="menu-item logout-btn">
-        <i data-lucide="log-out"></i>
-        <span>Logout</span>
-      </button>
-    </form>
-  </nav>
-</aside>
-
+        <!-- ✅ Logout Button -->
+        <form action="{% url 'logout' %}" method="post" class="logout-form">
+          {% csrf_token %}
+          <button type="submit" class="menu-item logout-btn">
+            <i data-lucide="log-out"></i>
+            <span>Logout</span>
+          </button>
+        </form>
+      </nav>
+    </aside>
 
     <!-- Main content -->
     <main class="content">
       <h2 class="title">STUDENT DASHBOARD</h2>
       <div class="dashboard-grid">
-       <!-- RESPONSE HISTORY -->
-<div class="card history">
-  <h3>RESPONSE HISTORY</h3>
 
-  <div class="search-filter">
-    <input type="text" placeholder="Search by title" class="search-bar">
-    <select>
-      <option>Date</option>
-      <option>Newest</option>
-      <option>Oldest</option>
-    </select>
-    <select>
-      <option>Status</option>
-      <option>Completed</option>
-      <option>In Progress</option>
-    </select>
-  </div>
+        <!-- RESPONSE HISTORY (placeholder/static for now) -->
+        <div class="card history">
+          <h3>RESPONSE HISTORY</h3>
 
-  <div class="response-table">
-    <div class="table-row header">
-      <div class="col">Survey</div>
-      <div class="col">Date</div>
-      <div class="col">Status</div>
-    </div>
+          <div class="search-filter">
+            <input type="text" placeholder="Search by title" class="search-bar">
+            <select>
+              <option>Date</option>
+              <option>Newest</option>
+              <option>Oldest</option>
+            </select>
+            <select>
+              <option>Status</option>
+              <option>Completed</option>
+              <option>In Progress</option>
+            </select>
+          </div>
 
-    <div class="table-body">
-      <div class="table-row">
-        <div class="col">Group Project Reflection</div>
-        <div class="col">November 30, 2025</div>
-        <div class="col status in-progress">On Progress</div>
+          <div class="response-table">
+            <div class="table-row header">
+              <div class="col">Survey</div>
+              <div class="col">Date</div>
+              <div class="col">Status</div>
+            </div>
+
+            <div class="table-body">
+              <div class="table-row">
+                <div class="col">Group Project Reflection</div>
+                <div class="col">November 30, 2025</div>
+                <div class="col status in-progress">On Progress</div>
+              </div>
+
+              <div class="table-row">
+                <div class="col">Library Satisfaction Survey</div>
+                <div class="col">November 28, 2025</div>
+                <div class="col status completed">Completed</div>
+              </div>
+
+              <div class="table-row">
+                <div class="col">Campus Survey</div>
+                <div class="col">November 20, 2025</div>
+                <div class="col status completed">Completed</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ✅ ASSIGNED SURVEYS (from SurveyAssignment / Survey model) -->
+        <div class="card assigned-surveys">
+          <h3>ASSIGNED SURVEYS</h3>
+
+          {% if surveys %}
+            <div class="response-table">
+              <div class="table-row header">
+                <div class="col">Survey</div>
+                <div class="col">Due Date</div>
+                <div class="col">Status</div>
+              </div>
+
+              <div class="table-body">
+                {% for survey in surveys %}
+                  <div class="table-row">
+
+                    <!-- CLICKABLE SURVEY TITLE -->
+                    <div class="col">
+                      <a href="{% url 'take_survey' survey.survey_id %}" class="survey-link">
+                        {{ survey.title }}
+                      </a>
+                    </div>
+
+                    <!-- Due Date -->
+                    <div class="col">
+                      {% if survey.due_date %}
+                        {{ survey.due_date }}
+                      {% else %}
+                        No due date
+                      {% endif %}
+                    </div>
+
+                    <!-- Status (plain text) -->
+                    <div class="col status">
+                      {{ survey.status }}
+                    </div>
+
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <p>No surveys assigned to your section right now.</p>
+          {% endif %}
+        </div>
+
       </div>
-
-      <div class="table-row">
-        <div class="col">Library Satisfaction Survey</div>
-        <div class="col">November 28, 2025</div>
-        <div class="col status completed">Completed</div>
-      </div>
-
-      <div class="table-row">
-        <div class="col">Campus Survey</div>
-        <div class="col">November 20, 2025</div>
-        <div class="col status completed">Completed</div>
-      </div>
-    </div>
-  </div>
-</div>
-
     </main>
   </section>
 

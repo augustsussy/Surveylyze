@@ -80,22 +80,24 @@
         <h3>Survey Settings</h3>
 
         <!-- You can wrap in a form if you plan to POST -->
-      <form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
+<form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
   {% csrf_token %}
 
+  <!-- only this hidden input is needed -->
+  <input type="hidden" id="questionsData" name="questions">
 
-          <!-- Survey Title -->
-<label class="label" for="surveyTitle">Survey Title</label>
-<div class="field">
-  <input
-    type="text"
-    id="surveyTitle"
-    name="title"
-    class="control"
-    autocomplete="off"
-    required
-  >
-</div>
+  <!-- Survey Title -->
+  <label class="label" for="surveyTitle">Survey Title</label>
+  <div class="field">
+    <input
+      type="text"
+      id="surveyTitle"
+      name="title"
+      class="control"
+      autocomplete="off"
+      required
+    >
+  </div>
 
 <!-- Survey Description -->
 <label class="label" for="surveyDescription">Description</label>

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Survey | SURVEYLYZE</title>
+  <title>{{ survey.title }} | SURVEYLYZE</title>
   <link rel="stylesheet" href="{% static 'main/css/survey.css' %}">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
@@ -15,98 +15,96 @@
       <h1>SURVEYLYZE</h1>
     </div>
     <div class="profile-menu">
-  <img src="{% static 'main/images/Alhaitham.png' %}" alt="Profile" class="profile-icon" id="profile-btn">
+      <img src="{% static 'main/images/Alhaitham.png' %}" alt="Profile" class="profile-icon" id="profile-btn">
 
-  <div class="dropdown-panel" id="profile-panel">
-    <div class="profile-header">
-      <h3>{{ request.user.first_name|default:"Student" }}</h3>
+      <div class="dropdown-panel" id="profile-panel">
+        <div class="profile-header">
+          <h3>{{ request.user.first_name|default:"Student" }}</h3>
+        </div>
+        <a href="{% url 'dashboard' %}">
+          <i class="icon">🏠</i> Dashboard
+        </a>
+        <a href="{% url 'landing' %}">
+          <i class="icon">🚪</i> Logout
+        </a>
+      </div>
     </div>
-    <a href="{% url 'dashboard' %}">
-      <i class="icon">🏠</i> Dashboard
-    </a>
-    <a href="{% url 'landing' %}">
-      <i class="icon">🚪</i> Logout
-    </a>
-  </div>
-</div>
-
   </header>
 
   <!-- Survey Section -->
   <main class="survey-wrapper">
     <section class="survey-container">
       <div class="survey-card">
-        <h2>DYNAMIC STUDENT FORM SURVEY</h2>
+        <!-- dynamic title/description -->
+        <h2>{{ survey.title }}</h2>
+        {% if survey.description %}
+          <p class="survey-description">{{ survey.description }}</p>
+        {% endif %}
 
-        <!-- Tabs -->
+        <!-- You can still keep tabs / progress if you later group questions into pages -->
         <div class="survey-tabs">
-          <button class="tab active" data-step="0">Personal Information</button>
-          <button class="tab" data-step="1">Learning Experience</button>
-          <button class="tab" data-step="2">Suggestions</button>
+          <button class="tab active" data-step="0">Questions</button>
         </div>
 
-        <!-- Progress bar -->
         <div class="progress-bar">
           <div class="progress"></div>
-          <span class="progress-text">1/3</span>
+          <span class="progress-text">1/1</span>
         </div>
 
         <!-- Survey form -->
-        <form id="survey-form">
+        <form id="survey-form" method="post">
+          {% csrf_token %}
+
+          <!-- One step containing all questions for now -->
           <div class="survey-step active">
-            <label>What is your name?</label>
-            <input type="text" placeholder="Enter your name">
+            {% for question in questions %}
+              <div class="question-block">
+                <label>{{ question.order_number }}. {{ question.question }}</label>
 
-            <label>How old are you?</label>
-            <input type="number" placeholder="Enter your age">
+                {# SHORT ANSWER -> text box #}
+                {% if question.question_type == "short_answer" %}
+                  <input
+                    type="text"
+                    name="q{{ question.question_id }}"
+                    placeholder="Type your answer"
+                  >
 
-            <label>What is your gender?</label>
-            <select>
-              <option value="">Select</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Prefer not to say</option>
-            </select>
+                {# MCQ -> dropdown from options #}
+                {% elif question.question_type == "mcq" %}
+                  <select name="q{{ question.question_id }}">
+                    <option value="">Select an option</option>
+                    {% for opt in question.options.all %}
+                      <option value="{{ opt.option_text }}">{{ opt.option_text }}</option>
+                    {% empty %}
+                      <option disabled>No options defined</option>
+                    {% endfor %}
+                  </select>
 
-            <label>What is your student ID?</label>
-            <input type="text" placeholder="Enter your student ID">
-          </div>
-
-          <div class="survey-step">
-            <label>How would you rate your learning experience?</label>
-            <select>
-              <option>Excellent</option>
-              <option>Good</option>
-              <option>Average</option>
-              <option>Poor</option>
-            </select>
-
-            <label>What subjects do you enjoy most?</label>
-            <input type="text" placeholder="Type your answer">
-
-            <label>Do you prefer online or in-person learning?</label>
-            <select>
-              <option>Online</option>
-              <option>In-person</option>
-              <option>Both</option>
-            </select>
-          </div>
-
-          <div class="survey-step">
-            <label>Any suggestions for improvement?</label>
-            <textarea placeholder="Write your suggestions here"></textarea>
-
-            <label>Would you recommend this platform to others?</label>
-            <select>
-              <option>Yes</option>
-              <option>No</option>
-            </select>
+                {# LIKERT -> 1–5 stars #}
+                {% elif question.question_type == "likert" or question.question_type == "likert_scale" %}
+                  <div class="likert-stars">
+                    {% for i in "12345" %}
+                      <input
+                        type="radio"
+                        id="q{{ question.question_id }}_{{ forloop.counter }}"
+                        name="q{{ question.question_id }}"
+                        value="{{ forloop.counter }}"
+                      >
+                      <label for="q{{ question.question_id }}_{{ forloop.counter }}">★</label>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            {% empty %}
+              <p>No questions defined for this survey.</p>
+            {% endfor %}
           </div>
 
           <!-- Navigation buttons -->
           <div class="form-navigation">
+            <!-- Only one step for now, so Previous is disabled and Next = Submit -->
             <button type="button" class="btn prev" disabled>Previous</button>
-            <button type="button" class="btn next">Next</button>
+            <button type="submit" class="btn next">Submit</button>
           </div>
         </form>
       </div>

@@ -1,5 +1,5 @@
 from datetime import datetime
-
+import json
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
@@ -10,7 +10,15 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.db.models import Q
+from django.shortcuts import render, get_object_or_404
+from . import models
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
 
+from . import models
 from . import models
 
 User = get_user_model()
@@ -54,11 +62,7 @@ def login_view(request):
 
     return render(request, "main/login.html")
 
-def dashboard(request):
-    return render(request, "main/dashboard.html", {
-        "title": "Dashboard",
-        "user": request.user,
-    })
+
 
 def survey(request):
     return render(request, 'main/survey.html')
@@ -153,7 +157,6 @@ def surveybuilder(request):
     return render(request, template, context)
 
 def survey_builder(request):
-    # Only staff/teachers should use this page (optional)
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "You don't have access to the survey builder.")
         return redirect("dashboard")
@@ -164,10 +167,9 @@ def survey_builder(request):
         title = (request.POST.get("title") or "").strip()
         description = (request.POST.get("description") or "").strip() or None
         due_raw = request.POST.get("dueDate")
-        section_id = request.POST.get("assignTo")  # we’ll use this when you add assignments
-        action = request.POST.get("action")        # "draft" or "publish" from the buttons
+        section_id = request.POST.get("assignTo")
+        action = request.POST.get("action")  # "draft" or "publish"
 
-        # status: button decides, fallback to toggle if you prefer
         status = "published" if action == "publish" else "draft"
 
         # parse due date
@@ -179,15 +181,13 @@ def survey_builder(request):
                 messages.error(request, "Invalid due date format.")
                 return redirect("survey_builder")
 
-        # get Teacher linked to this user
+        # teacher linked to this user
         try:
-            # if you used OneToOneField(User) named 'teacher_profile'
             teacher = request.user.teacher_profile
         except Exception:
-            # or fetch by user FK if you named it differently
             teacher = get_object_or_404(models.Teacher, user=request.user)
 
-        # create the survey
+        # create survey
         survey = models.Survey.objects.create(
             teacher=teacher,
             title=title,
@@ -196,15 +196,81 @@ def survey_builder(request):
             due_date=due_date,
         )
 
-        # TODO: When you’re ready, create a SurveyAssignment here
-        # if section_id:
-        #     section = get_object_or_404(models.ClassSection, pk=section_id)
-        #     models.SurveyAssignment.objects.create(survey=survey, class_section=section)
+        # 🔹 link survey → section
+        if section_id:
+            section = get_object_or_404(models.ClassSection, pk=section_id)
+            models.SurveyAssignment.objects.create(
+                survey=survey,
+                class_section=section,
+            )
 
-        messages.success(request, f"Survey “{survey.title}” saved as {survey.status}.")
-        return redirect("survey_builder")  # or redirect to a survey detail page
+        # 🔹 NOW: save questions from the hidden "questions" JSON
+        questions_json = request.POST.get("questions", "[]")
+
+        try:
+            questions = json.loads(questions_json)
+        except json.JSONDecodeError:
+            questions = []
+
+        for q in questions:
+            text = (q.get("question") or "").strip()
+            if not text:
+                continue
+
+            q_type = q.get("question_type") or "short_answer"
+            order = q.get("order_number") or 1
+
+            models.Question.objects.create(
+                survey=survey,
+                question=text,
+                question_type=q_type,   # "mcq", "likert", "short_answer"
+                order_number=order,
+            )
+
+        messages.success(
+            request,
+            f'Survey “{survey.title}” saved as {survey.status} with {len(questions)} question(s).'
+        )
+        return redirect("survey_builder")
 
     return render(request, "main/surveyBuilder_admin.html", {
         "sections": sections,
         "title": "Survey Builder",
+    })
+
+def dashboard(request):
+    # get the logged-in student
+    try:
+        student = request.user.student_profile
+    except Exception:
+        student = get_object_or_404(models.Student, user=request.user)
+
+    section = student.class_section
+
+    today = timezone.now().date()
+
+    # 🔹 surveys assigned to this section AND published
+    surveys = models.Survey.objects.filter(
+        assignments__class_section=section,
+        status="published"
+    ).filter(
+        Q(due_date__isnull=True) | Q(due_date__gte=today)  # active or no due date
+    ).distinct().order_by("due_date", "title")
+
+    return render(request, "main/dashboard.html", {
+        "student": student,
+        "surveys": surveys,
+    })
+
+@login_required
+def take_survey(request, survey_id):
+    # Use models.Survey so we don't rely on a bare `Survey` name
+    survey = get_object_or_404(models.Survey, pk=survey_id)
+
+    # Get all questions linked to this survey
+    questions = survey.questions.all().order_by("order_number")
+
+    return render(request, "main/survey.html", {
+        "survey": survey,
+        "questions": questions,
     })
