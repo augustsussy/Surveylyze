@@ -5,32 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Survey Builder</title>
 
+  <!-- Fonts & Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-  <link rel="stylesheet" href="surveyBuilder_admin.css">
+  <!-- Styles -->
+  <link rel="stylesheet" href="{% static 'main/css/surveyBuilder_admin.css' %}">
 </head>
 <body>
   <div class="shell">
+
     <!-- Top bar -->
     <div class="topbar">
       <div class="actions">
-        <button id="btnNew" class="btn btn-ghost"><i class="bi bi-plus-lg"></i> New survey</button>
-        <button id="btnSave" class="btn btn-primary">Save Draft</button>
+        <button id="btnNew" class="btn btn-ghost">
+          <i class="bi bi-plus-lg"></i> New survey
+        </button>
+
+        <button
+          id="btnSave"
+          class="btn btn-primary"
+          type="submit"
+          form="surveySettingsForm"
+          name="action"
+          value="draft">
+          Save Draft
+        </button>
+
         <div class="split">
-          <button id="btnPublish" class="btn btn-primary">Publish Survey</button>
-          <button class="btn btn-primary split-caret" id="btnMenu"><i class="bi bi-caret-down-fill"></i></button>
+          <button
+            id="btnPublish"
+            class="btn btn-primary"
+            type="submit"
+            form="surveySettingsForm"
+            name="action"
+            value="publish">
+            Publish Survey
+          </button>
+
+          <button class="btn btn-primary split-caret" id="btnMenu">
+            <i class="bi bi-caret-down-fill"></i>
+          </button>
           <ul class="menu" id="menu">
-            <li><button id="btnExport" class="menu-item"><i class="bi bi-braces"></i> Export JSON</button></li>
+            <li>
+              <button id="btnExport" class="menu-item">
+                <i class="bi bi-braces"></i> Export JSON
+              </button>
+            </li>
           </ul>
         </div>
       </div>
     </div>
 
+    <!-- Main grid -->
     <div class="grid">
-      <!-- Toolbox (buttons are draggable) -->
+      <!-- Toolbox -->
       <aside id="toolbox" class="panel toolbox">
-        <div class="panel-title"><i class="bi bi-grid-3x3-gap me-1"></i>Question Toolbox</div>
+        <div class="panel-title">
+          <i class="bi bi-grid-3x3-gap me-1"></i>Question Toolbox
+        </div>
+
         <button class="tool" draggable="true" data-type="multiple_choice">
           <i class="bi bi-ui-radios-grid"></i> Multiple Choice
         </button>
@@ -40,13 +74,44 @@
         <button class="tool" draggable="true" data-type="short_answer">
           <i class="bi bi-input-cursor-text"></i> Short Answer
         </button>
-        <button class="tool" draggable="true" data-type="paragraph">
-          <i class="bi bi-justify-left"></i> Paragraph
-        </button>
       </aside>
 
-      <!-- Canvas -->
+      <!-- Canvas + sections -->
       <main class="canvas panel">
+        <!-- Section Tabs Bar -->
+        <div class="section-tabs">
+          <div class="section-tabs-inner">
+
+            <!-- LEFT ARROW -->
+            <button type="button" id="sectionPrev" class="section-nav-btn">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <!-- Tabs list -->
+            <ul id="sectionTabs" class="section-tabs-list">
+              <!-- JS injects <li> tabs here -->
+            </ul>
+
+            <!-- Right side: right arrow + add + delete + counter -->
+            <div class="section-tabs-right">
+              <button type="button" id="sectionNext" class="section-nav-btn">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+
+              <button type="button" id="btnAddSection" class="section-add-btn">
+                + Add section
+              </button>
+
+              <button type="button" id="btnDeleteSection" class="section-delete-btn" title="Delete current part">
+                <i class="bi bi-trash3"></i>
+              </button>
+
+              <span id="sectionCounter" class="section-counter">1/1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions Canvas -->
         <div id="canvas" class="canvas-inner" ondragover="event.preventDefault()"></div>
       </main>
 
@@ -55,30 +120,65 @@
         <div class="breadcrumbs">Dashboard • Survey • Builder</div>
         <h3>Survey Settings</h3>
 
-        <label class="label">Assign to</label>
-        <div class="field with-icon">
-          <select id="assignTo">
-            <option value="">—</option>
-            <option>Section A</option>
-            <option>Section B</option>
-            <option>Section C</option>
-          </select>
-          <i class="bi bi-chevron-down field-icon"></i>
-        </div>
+        <form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
 
-        <label class="label">Due Date</label>
-        <div class="field with-icon">
-          <input type="date" id="dueDate">
-          <i id="dateIcon" class="bi bi-calendar3 field-icon"></i>
-        </div>
 
-        <div class="row-inline">
-          <span class="label m-0">Status</span>
-          <label class="switch">
-            <input type="checkbox" id="statusToggle">
-            <span class="slider"></span>
-          </label>
-        </div>
+          <input type="hidden" id="questionsData" name="questions">
+
+          <!-- Survey Title -->
+          <label class="label" for="surveyTitle">Survey Title</label>
+          <div class="field">
+            <input
+              type="text"
+              id="surveyTitle"
+              name="title"
+              class="control"
+              autocomplete="off"
+              required>
+          </div>
+
+          <!-- Survey Description -->
+          <label class="label" for="surveyDescription">Description</label>
+          <div class="field">
+            <textarea
+              id="surveyDescription"
+              name="description"
+              class="control"
+              rows="4"></textarea>
+          </div>
+
+          <!-- Assign To -->
+          <label class="label">Assign to</label>
+          <div class="field with-icon">
+            <select id="assignTo" name="assignTo" required>
+              <option value="">— Select Section —</option>
+              {% for section in sections %}
+                <option value="{{ section.class_id }}">
+                  {{ section.class_name }} (Year {{ section.year_level }})
+                </option>
+              {% empty %}
+                <option disabled>No sections available</option>
+              {% endfor %}
+            </select>
+            <i class="bi bi-chevron-down field-icon"></i>
+          </div>
+
+          <!-- Due Date -->
+          <label class="label" for="dueDate">Due Date</label>
+          <div class="field with-icon">
+            <input type="date" id="dueDate" name="dueDate">
+            <i id="dateIcon" class="bi bi-calendar3 field-icon"></i>
+          </div>
+
+          <!-- Status -->
+          <div class="row-inline">
+            <span class="label m-0">Status</span>
+            <label class="switch">
+              <input type="checkbox" id="statusToggle" name="status">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </form>
       </aside>
     </div>
 
@@ -90,24 +190,42 @@
   </div>
 
   <!-- Modal: New Survey -->
-<div id="modalOverlay" class="modal-overlay">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-header">
-      <div id="modalTitle" class="modal-title">
-        <i class="bi bi-exclamation-triangle me-2"></i>Start a new survey?
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title">
+          <i class="bi bi-exclamation-triangle me-2"></i>Start a new survey?
+        </div>
+      </div>
+      <div class="modal-body">
+        This will clear your current draft. You can’t undo this action.
+      </div>
+      <div class="modal-footer">
+        <button id="modalCancel" class="btn btn-ghost">Cancel</button>
+        <button id="modalConfirm" class="btn btn-primary">Start New</button>
       </div>
     </div>
-    <div class="modal-body">
-      This will clear your current draft. You can’t undo this action.
-    </div>
-    <div class="modal-footer">
-      <button id="modalCancel" class="btn btn-ghost">Cancel</button>
-      <button id="modalConfirm" class="btn btn-primary">Start New</button>
+  </div>
+
+  <!-- Section Name Modal -->
+  <div id="sectionModalOverlay" class="modal-overlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sectionModalTitle">
+      <div class="modal-header">
+        <div id="sectionModalTitle" class="modal-title">Add section</div>
+      </div>
+      <div class="modal-body">
+        <label class="label" for="sectionNameInput">Section name</label>
+        <input id="sectionNameInput" type="text" class="input"
+               placeholder="e.g. Personal Information" />
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="sectionModalCancel" class="btn btn-ghost">Cancel</button>
+        <button type="button" id="sectionModalSave" class="btn btn-primary">Save</button>
+      </div>
     </div>
   </div>
-</div>
 
-
-  <script src="surveyBuilder_admin.js"></script>
+  <!-- Scripts -->
+  <script src="{% static 'main/Javascript/surveyBuilder_admin.js' %}"></script>
 </body>
 </html>
