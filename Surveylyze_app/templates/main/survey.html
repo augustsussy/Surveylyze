@@ -71,14 +71,15 @@
 
                 {# MCQ -> dropdown from options #}
                 {% elif question.question_type == "mcq" %}
-                  <select name="q{{ question.question_id }}">
-                    <option value="">Select an option</option>
-                    {% for opt in question.options.all %}
-                      <option value="{{ opt.option_text }}">{{ opt.option_text }}</option>
-                    {% empty %}
-                      <option disabled>No options defined</option>
-                    {% endfor %}
-                  </select>
+                 <select name="q{{ question.question_id }}">
+  <option value="">Select an option</option>
+  {% for opt in question.options.all %}
+    <option value="{{ opt.id }}">{{ opt.option_text }}</option>
+  {% empty %}
+    <option disabled>No options defined</option>
+  {% endfor %}
+</select>
+
 
                 {# LIKERT -> 1–5 stars #}
                 {% elif question.question_type == "likert" or question.question_type == "likert_scale" %}

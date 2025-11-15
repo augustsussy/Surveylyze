@@ -28,5 +28,7 @@ admin.site.register(models.Student)
 admin.site.register(models.ClassSection)
 admin.site.register(models.Question)
 admin.site.register(models.SurveyAssignment)
+admin.site.register(models.StudentAnswer)
+admin.site.register(models.SurveyHistory)
 
 

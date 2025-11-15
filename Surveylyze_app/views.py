@@ -264,12 +264,61 @@ def dashboard(request):
 
 @login_required
 def take_survey(request, survey_id):
-    # Use models.Survey so we don't rely on a bare `Survey` name
+    # Get the survey
     survey = get_object_or_404(models.Survey, pk=survey_id)
 
-    # Get all questions linked to this survey
+    # Get logged-in student profile
+    try:
+        student = request.user.student_profile
+    except Exception:
+        student = get_object_or_404(models.Student, user=request.user)
+
+    # Get questions for this survey
     questions = survey.questions.all().order_by("order_number")
 
+    if request.method == "POST":
+        # Create survey attempt record
+        history = models.SurveyHistory.objects.create(
+            survey=survey,
+            student=student,
+        )
+
+        # Loop through each question and save student answers
+        for question in questions:
+            field_name = f"q{question.question_id}"
+            raw_value = request.POST.get(field_name)
+
+            if not raw_value:
+                continue  # skip unanswered
+
+            answer = models.StudentAnswer(
+                history=history,
+                question=question
+            )
+
+            qtype = question.question_type
+
+            if qtype == "short_answer":
+                answer.shortanswer_text = raw_value
+
+            elif qtype in ("likert", "likert_scale"):
+                try:
+                    answer.likert_value = int(raw_value)
+                except:
+                    continue
+
+            elif qtype == "mcq":
+                try:
+                    answer.choice_id = int(raw_value)
+                except:
+                    continue
+
+            answer.save()
+
+        messages.success(request, "Survey submitted successfully. Thank you!")
+        return redirect("dashboard")
+
+    # GET request — show survey page
     return render(request, "main/survey.html", {
         "survey": survey,
         "questions": questions,

@@ -79,3 +79,18 @@ class Option(models.Model):
         related_name="options"
     )
     option_text = models.CharField(max_length=255)
+
+class SurveyHistory(models.Model):
+    history_id = models.AutoField(primary_key=True)
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name="history_records")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="survey_attempts")
+    duration = models.IntegerField(null=True, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+class StudentAnswer(models.Model):
+    answer_id = models.AutoField(primary_key=True)
+    history = models.ForeignKey("SurveyHistory", on_delete=models.CASCADE, related_name="answers")
+    question = models.ForeignKey("Question", on_delete=models.CASCADE, related_name="student_answers")
+    choice_id = models.IntegerField(null=True, blank=True)
+    likert_value = models.IntegerField(null=True, blank=True)
+    shortanswer_text = models.TextField(null=True, blank=True)
