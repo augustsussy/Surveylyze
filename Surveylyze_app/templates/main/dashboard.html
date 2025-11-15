@@ -103,49 +103,56 @@
           </div>
         </div>
 
-        <!-- ✅ ASSIGNED SURVEYS (from SurveyAssignment / Survey model) -->
+        <!-- ✅ ASSIGNED SURVEYS (card style) -->
         <div class="card assigned-surveys">
-          <h3>ASSIGNED SURVEYS</h3>
+          <h3>ASSIGNED SURVEY</h3>
 
           {% if surveys %}
-            <div class="response-table">
-              <div class="table-row header">
-                <div class="col">Survey</div>
-                <div class="col">Due Date</div>
-                <div class="col">Status</div>
-              </div>
+            <div class="survey-card-list">
+              {% for survey in surveys %}
+                <div class="survey-card">
+                  <div class="survey-card-main">
+                    <h4 class="survey-card-title">{{ survey.title }}</h4>
 
-              <div class="table-body">
-                {% for survey in surveys %}
-                  <div class="table-row">
-
-                    <!-- CLICKABLE SURVEY TITLE -->
-                    <div class="col">
-                      <a href="{% url 'take_survey' survey.survey_id %}" class="survey-link">
-                        {{ survey.title }}
-                      </a>
-                    </div>
-
-                    <!-- Due Date -->
-                    <div class="col">
-                      {% if survey.due_date %}
-                        {{ survey.due_date }}
+                    <p class="survey-card-row">
+                      <span class="label">Status:</span>
+                      {% if survey.status == "closed" %}
+                        <span class="status-badge status-closed">Closed</span>
                       {% else %}
-                        No due date
+                        {# students only see published/closed, so published = Open #}
+                        <span class="status-badge status-open">Open</span>
                       {% endif %}
-                    </div>
+                    </p>
 
-                    <!-- Status (plain text) -->
-                    <div class="col status">
-                      {{ survey.status }}
-                    </div>
-
+                    <p class="survey-card-row">
+                      <span class="label">Deadline:</span>
+                      {% if survey.due_date %}
+                        <span class="deadline-date">
+                          {{ survey.due_date|date:"F d, Y" }}
+                        </span>
+                      {% else %}
+                        <span class="deadline-date no-deadline">No deadline</span>
+                      {% endif %}
+                    </p>
                   </div>
-                {% endfor %}
-              </div>
+
+                  <div class="survey-card-actions">
+                    {% if survey.status == "closed" %}
+                      <button class="btn-take-survey disabled" disabled>
+                        Closed
+                      </button>
+                    {% else %}
+                      <a href="{% url 'take_survey' survey.survey_id %}"
+                         class="btn-take-survey">
+                        Take Survey
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
             </div>
           {% else %}
-            <p>No surveys assigned to your section right now.</p>
+            <p class="no-surveys">No surveys assigned to your section right now.</p>
           {% endif %}
         </div>
 

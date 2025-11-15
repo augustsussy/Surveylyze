@@ -87,6 +87,10 @@ class SurveyHistory(models.Model):
     duration = models.IntegerField(null=True, blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ("survey", "student")
+        ordering = ["-submitted_at"]
+
 class StudentAnswer(models.Model):
     answer_id = models.AutoField(primary_key=True)
     history = models.ForeignKey("SurveyHistory", on_delete=models.CASCADE, related_name="answers")

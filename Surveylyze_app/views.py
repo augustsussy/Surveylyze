@@ -267,23 +267,38 @@ def take_survey(request, survey_id):
     # Get the survey
     survey = get_object_or_404(models.Survey, pk=survey_id)
 
-    # Get logged-in student profile
+    # Get logged-in student
     try:
         student = request.user.student_profile
     except Exception:
         student = get_object_or_404(models.Student, user=request.user)
 
+    # Check if this student already answered this survey
+    already_answered = models.SurveyHistory.objects.filter(
+        survey=survey,
+        student=student
+    ).exists()
+
+    if already_answered:
+        messages.info(request, "You have already answered this survey.")
+        return redirect("dashboard")  # or render a 'already completed' page
+
     # Get questions for this survey
     questions = survey.questions.all().order_by("order_number")
 
     if request.method == "POST":
+        # Double-check again on POST, just in case
+        if models.SurveyHistory.objects.filter(survey=survey, student=student).exists():
+            messages.info(request, "You have already answered this survey.")
+            return redirect("dashboard")
+
         # Create survey attempt record
         history = models.SurveyHistory.objects.create(
             survey=survey,
             student=student,
         )
 
-        # Loop through each question and save student answers
+        # Loop through each question and save answers
         for question in questions:
             field_name = f"q{question.question_id}"
             raw_value = request.POST.get(field_name)
@@ -304,13 +319,13 @@ def take_survey(request, survey_id):
             elif qtype in ("likert", "likert_scale"):
                 try:
                     answer.likert_value = int(raw_value)
-                except:
+                except ValueError:
                     continue
 
             elif qtype == "mcq":
                 try:
                     answer.choice_id = int(raw_value)
-                except:
+                except ValueError:
                     continue
 
             answer.save()
