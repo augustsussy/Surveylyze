@@ -78,6 +78,9 @@ const labelFor = t =>
 /* ===============================
    RENDER QUESTIONS
 ================================= */
+/* ===============================
+   RENDER QUESTIONS
+================================= */
 function render() {
   if (!canvas) return;
 
@@ -151,14 +154,40 @@ function render() {
         row.className = 'mc-opt';
         row.innerHTML = `
           <span class="mc-dot"></span>
+
           <div class="input" contenteditable="true">${escapeHTML(opt)}</div>
+
+          <div class="mc-actions">
+            <button class="mc-btn add-opt" title="Add Option">+</button>
+            <button class="mc-btn del-opt" title="Remove Option">–</button>
+          </div>
         `;
-        row
-          .querySelector('[contenteditable]')
-          .addEventListener('input', e => {
-            q.options[idx] = e.target.textContent;
+
+        // Edit option text
+        const editable = row.querySelector('[contenteditable]');
+        editable.addEventListener('input', e => {
+          q.options[idx] = e.target.textContent;
+          persist();
+        });
+
+        // Add option below this one
+        const addBtn = row.querySelector('.add-opt');
+        addBtn.onclick = () => {
+          q.options.splice(idx + 1, 0, 'New Option');
+          persist();
+          render();
+        };
+
+        // Remove this option (keep at least one)
+        const delBtn = row.querySelector('.del-opt');
+        delBtn.onclick = () => {
+          if (q.options.length > 1) {
+            q.options.splice(idx, 1);
             persist();
-          });
+            render();
+          }
+        };
+
         card.appendChild(row);
       });
     }
@@ -600,22 +629,35 @@ if (settingsForm) {
         questionType = 'likert';
       }
 
+      // Get main question text
       const input =
         card.querySelector('.input') ||
         card.querySelector("input[type='text']") ||
         card.querySelector('textarea');
 
       const text = (input && input.value.trim()) || '';
+      if (!text) return; // skip empty questions
 
-      if (text) {
-        questionsPayload.push({
-          order_number: index + 1,
-          question: text,
-          question_type: questionType
+      // 🔹 Collect MCQ options if needed
+      let options = [];
+      if (questionType === 'mcq') {
+        const optionEls = card.querySelectorAll(".mc-opt [contenteditable]");
+        optionEls.forEach(optEl => {
+          const val = optEl.textContent.trim();
+          if (val) options.push(val);
         });
       }
+
+      // Push question payload
+      questionsPayload.push({
+        order_number: index + 1,
+        question: text,
+        question_type: questionType,
+        options: options  // <-- IMPORTANT FOR MCQ
+      });
     });
 
+    // Put JSON into hidden input
     let hidden = document.getElementById('questionsData');
     if (!hidden) {
       hidden = document.createElement('input');
@@ -630,8 +672,11 @@ if (settingsForm) {
 }
 
 
+
 /* ===============================
    INIT
 ================================= */
+
+localStorage.removeItem('purple_survey_builder');
 restore();
 render();

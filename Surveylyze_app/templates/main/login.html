@@ -16,11 +16,15 @@
       <form method="POST" action="">
         {% csrf_token %}
 
-        {% if messages %}
-          {% for message in messages %}
-            <p style="color:red; margin:.5rem 0">{{ message }}</p>
-          {% endfor %}
-        {% endif %}
+{% if messages %}
+  {% for message in messages %}
+    {% if message.tags == "error" %}
+      <p style="color:red; margin:.5rem 0">{{ message.message }}</p>
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+
 
         <input type="hidden" name="next" value="{{ request.GET.next }}">
         <input type="email" name="email" placeholder="Email" required autofocus>

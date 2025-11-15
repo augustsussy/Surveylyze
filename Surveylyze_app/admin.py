@@ -30,5 +30,6 @@ admin.site.register(models.Question)
 admin.site.register(models.SurveyAssignment)
 admin.site.register(models.StudentAnswer)
 admin.site.register(models.SurveyHistory)
+admin.site.register(models.Option)
 
 

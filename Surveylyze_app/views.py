@@ -204,7 +204,7 @@ def survey_builder(request):
                 class_section=section,
             )
 
-        # 🔹 NOW: save questions from the hidden "questions" JSON
+        # 🔹 save questions from the hidden "questions" JSON
         questions_json = request.POST.get("questions", "[]")
 
         try:
@@ -219,13 +219,26 @@ def survey_builder(request):
 
             q_type = q.get("question_type") or "short_answer"
             order = q.get("order_number") or 1
+            options = q.get("options") or []
 
-            models.Question.objects.create(
+            # create the Question first
+            question_obj = models.Question.objects.create(
                 survey=survey,
                 question=text,
                 question_type=q_type,   # "mcq", "likert", "short_answer"
                 order_number=order,
             )
+
+            # 🔹 if MCQ, create Option rows
+            if q_type == "mcq":
+                for opt_text in options:
+                    opt_text = (opt_text or "").strip()
+                    if not opt_text:
+                        continue
+                    models.Option.objects.create(
+                        question=question_obj,
+                        option_text=opt_text,
+                    )
 
         messages.success(
             request,
@@ -238,6 +251,13 @@ def survey_builder(request):
         "title": "Survey Builder",
     })
 
+from django.db.models import Q
+from django.utils import timezone
+from django.shortcuts import get_object_or_404, render
+from . import models
+
+
+@login_required
 def dashboard(request):
     # get the logged-in student
     try:
@@ -246,95 +266,148 @@ def dashboard(request):
         student = get_object_or_404(models.Student, user=request.user)
 
     section = student.class_section
-
     today = timezone.now().date()
 
-    # 🔹 surveys assigned to this section AND published
-    surveys = models.Survey.objects.filter(
+    # 🔹 base surveys (assigned & published & not expired)
+    base_surveys = models.Survey.objects.filter(
         assignments__class_section=section,
         status="published"
     ).filter(
-        Q(due_date__isnull=True) | Q(due_date__gte=today)  # active or no due date
-    ).distinct().order_by("due_date", "title")
+        Q(due_date__isnull=True) | Q(due_date__gte=today)
+    ).distinct()
+
+    # 🔹 surveys already answered
+    answered_ids = models.SurveyHistory.objects.filter(
+        student=student
+    ).values_list("survey_id", flat=True)
+
+    # 🔹 ASSIGNED SURVEYS (not yet answered)
+    assigned_surveys = base_surveys.exclude(survey_id__in=answered_ids)
+
+    # ---------- RESPONSE HISTORY with search/sort ----------
+    q = (request.GET.get("q") or "").strip()
+    order = request.GET.get("order") or "newest"
+
+    responses = models.SurveyHistory.objects.filter(
+        student=student
+    ).select_related("survey")
+
+    # filter by title if search text is present
+    if q:
+        responses = responses.filter(survey__title__icontains=q)
+
+    # sort by date
+    if order == "oldest":
+        responses = responses.order_by("submitted_at")
+    else:  # "newest" or anything else
+        responses = responses.order_by("-submitted_at")
 
     return render(request, "main/dashboard.html", {
         "student": student,
-        "surveys": surveys,
+        "surveys": assigned_surveys,
+        "responses": responses,
     })
+
 
 @login_required
 def take_survey(request, survey_id):
-    # Get the survey
     survey = get_object_or_404(models.Survey, pk=survey_id)
 
-    # Get logged-in student
+    # Logged in student
     try:
         student = request.user.student_profile
     except Exception:
         student = get_object_or_404(models.Student, user=request.user)
 
-    # Check if this student already answered this survey
-    already_answered = models.SurveyHistory.objects.filter(
+    # Check if already answered
+    existing_history = models.SurveyHistory.objects.filter(
         survey=survey,
         student=student
-    ).exists()
-
-    if already_answered:
-        messages.info(request, "You have already answered this survey.")
-        return redirect("dashboard")  # or render a 'already completed' page
-
-    # Get questions for this survey
-    questions = survey.questions.all().order_by("order_number")
+    ).first()
 
     if request.method == "POST":
-        # Double-check again on POST, just in case
-        if models.SurveyHistory.objects.filter(survey=survey, student=student).exists():
-            messages.info(request, "You have already answered this survey.")
+        if existing_history:
+            messages.warning(request, "You have already answered this survey.")
             return redirect("dashboard")
 
-        # Create survey attempt record
+        # Create history record
         history = models.SurveyHistory.objects.create(
             survey=survey,
             student=student,
+            duration=None,  # you can update this later if you track time
         )
 
-        # Loop through each question and save answers
-        for question in questions:
+        # Loop through questions and save answers
+        for question in survey.questions.all().order_by("order_number"):
             field_name = f"q{question.question_id}"
             raw_value = request.POST.get(field_name)
 
+            # If nothing submitted for this question, skip
             if not raw_value:
-                continue  # skip unanswered
+                continue
 
-            answer = models.StudentAnswer(
-                history=history,
-                question=question
-            )
+            # SHORT ANSWER
+            if question.question_type == "short_answer":
+                models.StudentAnswer.objects.create(
+                    history=history,
+                    question=question,
+                    shortanswer_text=raw_value
+                )
 
-            qtype = question.question_type
-
-            if qtype == "short_answer":
-                answer.shortanswer_text = raw_value
-
-            elif qtype in ("likert", "likert_scale"):
+            # LIKERT
+            elif question.question_type in ["likert", "likert_scale"]:
                 try:
-                    answer.likert_value = int(raw_value)
-                except ValueError:
+                    likert_val = int(raw_value)
+                except (TypeError, ValueError):
                     continue
 
-            elif qtype == "mcq":
+                models.StudentAnswer.objects.create(
+                    history=history,
+                    question=question,
+                    likert_value=likert_val
+                )
+
+            # MCQ
+            elif question.question_type == "mcq":
                 try:
-                    answer.choice_id = int(raw_value)
-                except ValueError:
+                    choice_id = int(raw_value)  # this is Option.id / option_id
+                except (TypeError, ValueError):
                     continue
 
-            answer.save()
+                models.StudentAnswer.objects.create(
+                    history=history,
+                    question=question,
+                    choice_id=choice_id
+                )
 
-        messages.success(request, "Survey submitted successfully. Thank you!")
+        messages.success(request, "Your responses have been submitted.")
         return redirect("dashboard")
 
-    # GET request — show survey page
+    else:
+        # GET: if already answered, don't show the form
+        if existing_history:
+            messages.warning(request, "You have already answered this survey.")
+            return redirect("dashboard")
+
+    questions = survey.questions.all().order_by("order_number")
     return render(request, "main/survey.html", {
         "survey": survey,
         "questions": questions,
+    })
+
+@login_required
+def response_history(request, history_id):
+    history = get_object_or_404(
+        models.SurveyHistory,
+        pk=history_id,
+        student=request.user.student_profile  # ensures it's their own
+    )
+
+    answers = models.StudentAnswer.objects.filter(
+        history=history
+    ).select_related("question")
+
+    return render(request, "main/response_history.html", {
+        "history": history,
+        "answers": answers,
     })

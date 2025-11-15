@@ -203,3 +203,39 @@ body{
   .grid{grid-template-columns:1fr}
   .settings{order:3}
 }
+
+.mc-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.mc-dot {
+  border: 2px solid #bfa8ea;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+}
+
+.mc-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 5px;
+}
+
+.mc-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: #efe6ff;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.mc-btn:hover {
+  background: #d9c8ff;
+}
+

@@ -56,23 +56,40 @@
       <h2 class="title">STUDENT DASHBOARD</h2>
       <div class="dashboard-grid">
 
-        <!-- RESPONSE HISTORY (placeholder/static for now) -->
+        <!-- ✅ RESPONSE HISTORY -->
         <div class="card history">
           <h3>RESPONSE HISTORY</h3>
 
-          <div class="search-filter">
-            <input type="text" placeholder="Search by title" class="search-bar">
-            <select>
-              <option>Date</option>
-              <option>Newest</option>
-              <option>Oldest</option>
+          <!-- Search + filters form -->
+          <form method="get" class="search-filter">
+            <input
+              type="text"
+              name="q"
+              placeholder="Search by title"
+              class="search-bar"
+              value="{{ request.GET.q }}"
+            >
+
+            <select name="order">
+              <option value="newest"
+                {% if request.GET.order == "newest" or not request.GET.order %}selected{% endif %}>
+                Newest
+              </option>
+              <option value="oldest"
+                {% if request.GET.order == "oldest" %}selected{% endif %}>
+                Oldest
+              </option>
             </select>
-            <select>
+
+            <!-- status filter is just visual for now -->
+            <select name="status" disabled>
               <option>Status</option>
-              <option>Completed</option>
-              <option>In Progress</option>
+              <option selected>Completed</option>
             </select>
-          </div>
+
+            <!-- hidden button so Enter in the input submits the form -->
+            <button type="submit" class="search-submit" style="display:none;"></button>
+          </form>
 
           <div class="response-table">
             <div class="table-row header">
@@ -82,23 +99,30 @@
             </div>
 
             <div class="table-body">
-              <div class="table-row">
-                <div class="col">Group Project Reflection</div>
-                <div class="col">November 30, 2025</div>
-                <div class="col status in-progress">On Progress</div>
-              </div>
-
-              <div class="table-row">
-                <div class="col">Library Satisfaction Survey</div>
-                <div class="col">November 28, 2025</div>
-                <div class="col status completed">Completed</div>
-              </div>
-
-              <div class="table-row">
-                <div class="col">Campus Survey</div>
-                <div class="col">November 20, 2025</div>
-                <div class="col status completed">Completed</div>
-              </div>
+              {% if responses %}
+                {% for history in responses %}
+                  <div class="table-row">
+                    <div class="col">
+  <a href="{% url 'response_history' history.history_id %}"
+     class="response-link">
+    {{ history.survey.title }}
+  </a>
+</div>
+                    <div class="col">
+                      {{ history.submitted_at|date:"F d, Y" }}
+                    </div>
+                    <div class="col status completed">
+                      Completed
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="table-row">
+                  <div class="col">No responses found.</div>
+                  <div class="col"></div>
+                  <div class="col"></div>
+                </div>
+              {% endif %}
             </div>
           </div>
         </div>
