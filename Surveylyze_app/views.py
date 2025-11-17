@@ -247,7 +247,7 @@ def survey_builder(request):
 
         if status == "published":
             return redirect("analytics_admin")
-        
+
         return redirect("survey_builder")
 
     return render(request, "main/surveyBuilder_admin.html", {
