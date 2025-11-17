@@ -244,6 +244,10 @@ def survey_builder(request):
             request,
             f'Survey “{survey.title}” saved as {survey.status} with {len(questions)} question(s).'
         )
+
+        if status == "published":
+            return redirect("analytics_admin")
+        
         return redirect("survey_builder")
 
     return render(request, "main/surveyBuilder_admin.html", {
@@ -268,44 +272,31 @@ def dashboard(request):
     section = student.class_section
     today = timezone.now().date()
 
-    # 🔹 base surveys (assigned & published & not expired)
+    # 🔹 All published, not-expired surveys assigned to this section
     base_surveys = models.Survey.objects.filter(
         assignments__class_section=section,
-        status="published"
+        status="published",
     ).filter(
         Q(due_date__isnull=True) | Q(due_date__gte=today)
     ).distinct()
 
-    # 🔹 surveys already answered
+    # 🔹 Surveys THIS student has already answered
     answered_ids = models.SurveyHistory.objects.filter(
         student=student
     ).values_list("survey_id", flat=True)
 
-    # 🔹 ASSIGNED SURVEYS (not yet answered)
-    assigned_surveys = base_surveys.exclude(survey_id__in=answered_ids)
+    # 🔹 Assigned (to show in "ASSIGNED SURVEY" card): base − answered_by_this_student
+    assigned_surveys = base_surveys.exclude(survey_id__in=answered_ids).order_by("due_date", "title")
 
-    # ---------- RESPONSE HISTORY with search/sort ----------
-    q = (request.GET.get("q") or "").strip()
-    order = request.GET.get("order") or "newest"
-
+    # 🔹 Response history (only THIS student's attempts)
     responses = models.SurveyHistory.objects.filter(
         student=student
-    ).select_related("survey")
-
-    # filter by title if search text is present
-    if q:
-        responses = responses.filter(survey__title__icontains=q)
-
-    # sort by date
-    if order == "oldest":
-        responses = responses.order_by("submitted_at")
-    else:  # "newest" or anything else
-        responses = responses.order_by("-submitted_at")
+    ).select_related("survey").order_by("-submitted_at")
 
     return render(request, "main/dashboard.html", {
         "student": student,
-        "surveys": assigned_surveys,
-        "responses": responses,
+        "surveys": assigned_surveys,   # your template uses 'surveys' for the card
+        "responses": responses,        # your response history table
     })
 
 
@@ -313,13 +304,13 @@ def dashboard(request):
 def take_survey(request, survey_id):
     survey = get_object_or_404(models.Survey, pk=survey_id)
 
-    # Logged in student
+    # Logged-in student
     try:
         student = request.user.student_profile
     except Exception:
         student = get_object_or_404(models.Student, user=request.user)
 
-    # Check if already answered
+    # Has THIS student already answered THIS survey?
     existing_history = models.SurveyHistory.objects.filter(
         survey=survey,
         student=student
@@ -334,31 +325,44 @@ def take_survey(request, survey_id):
         history = models.SurveyHistory.objects.create(
             survey=survey,
             student=student,
-            duration=None,  # you can update this later if you track time
+            duration=None,
         )
 
-        # Loop through questions and save answers
+        # Loop all questions for this survey
         for question in survey.questions.all().order_by("order_number"):
             field_name = f"q{question.question_id}"
             raw_value = request.POST.get(field_name)
 
-            # If nothing submitted for this question, skip
-            if not raw_value:
+            # normalize type
+            qtype = (question.question_type or "").strip().lower()
+
+            # 🔍 DEBUG: see exactly what is coming in
+            print(
+                "ANSWER DEBUG ->",
+                "QID:", question.question_id,
+                "| TYPE:", repr(qtype),
+                "| FIELD:", field_name,
+                "| VALUE:", repr(raw_value),
+            )
+
+            # nothing submitted
+            if raw_value in (None, ""):
                 continue
 
             # SHORT ANSWER
-            if question.question_type == "short_answer":
+            if qtype == "short_answer":
                 models.StudentAnswer.objects.create(
                     history=history,
                     question=question,
                     shortanswer_text=raw_value
                 )
 
-            # LIKERT
-            elif question.question_type in ["likert", "likert_scale"]:
+            # LIKERT (likert / likert_scale)
+            elif qtype.startswith("likert"):
                 try:
                     likert_val = int(raw_value)
                 except (TypeError, ValueError):
+                    print("  -> LIKERT: cannot convert", raw_value, "to int")
                     continue
 
                 models.StudentAnswer.objects.create(
@@ -366,25 +370,42 @@ def take_survey(request, survey_id):
                     question=question,
                     likert_value=likert_val
                 )
+                print("  -> LIKERT: saved", likert_val)
 
             # MCQ
-            elif question.question_type == "mcq":
+            elif qtype in ("mcq", "multiple_choice"):
                 try:
-                    choice_id = int(raw_value)  # this is Option.id / option_id
+                    choice_pk = int(raw_value)   # from <option value="{{ opt.option_id }}">
                 except (TypeError, ValueError):
+                    print("  -> MCQ: cannot convert", raw_value, "to int")
+                    continue
+
+                try:
+                    option = models.Option.objects.get(
+                        option_id=choice_pk,
+                        question=question
+                    )
+                except models.Option.DoesNotExist:
+                    print("  -> MCQ: Option", choice_pk, "does not belong to Question", question.question_id)
                     continue
 
                 models.StudentAnswer.objects.create(
                     history=history,
                     question=question,
-                    choice_id=choice_id
+                    choice_id=option.option_id,
                 )
+                print("  -> MCQ: SAVED choice_id =", option.option_id)
+
+            # else: skip unknown types
+            else:
+                print("  -> SKIP: unknown type", repr(qtype))
+                continue
 
         messages.success(request, "Your responses have been submitted.")
         return redirect("dashboard")
 
     else:
-        # GET: if already answered, don't show the form
+        # GET: block if already answered
         if existing_history:
             messages.warning(request, "You have already answered this survey.")
             return redirect("dashboard")
@@ -397,15 +418,20 @@ def take_survey(request, survey_id):
 
 @login_required
 def response_history(request, history_id):
+    try:
+        student = request.user.student_profile
+    except Exception:
+        student = get_object_or_404(models.Student, user=request.user)
+
     history = get_object_or_404(
         models.SurveyHistory,
         pk=history_id,
-        student=request.user.student_profile  # ensures it's their own
+        student=student,  # <= important filter
     )
 
-    answers = models.StudentAnswer.objects.filter(
-        history=history
-    ).select_related("question")
+    answers = history.answers.select_related("question").all().order_by(
+        "question__order_number"
+    )
 
     return render(request, "main/response_history.html", {
         "history": history,

@@ -41,7 +41,7 @@
           <p class="survey-description">{{ survey.description }}</p>
         {% endif %}
 
-        <!-- You can still keep tabs / progress if you later group questions into pages -->
+        <!-- Tabs -->
         <div class="survey-tabs">
           <button class="tab active" data-step="0">Questions</button>
         </div>
@@ -71,15 +71,15 @@
 
                 {# MCQ -> dropdown from options #}
                 {% elif question.question_type == "mcq" %}
-                 <select name="q{{ question.question_id }}">
-  <option value="">Select an option</option>
-  {% for opt in question.options.all %}
-    <option value="{{ opt.id }}">{{ opt.option_text }}</option>
-  {% empty %}
-    <option disabled>No options defined</option>
-  {% endfor %}
-</select>
-
+                  <select name="q{{ question.question_id }}">
+                    <option value="">Select an option</option>
+                    {% for opt in question.options.all %}
+                      {# IMPORTANT: use option_id (your PK), not id #}
+                      <option value="{{ opt.option_id }}">{{ opt.option_text }}</option>
+                    {% empty %}
+                      <option disabled>No options defined</option>
+                    {% endfor %}
+                  </select>
 
                 {# LIKERT -> 1–5 stars #}
                 {% elif question.question_type == "likert" or question.question_type == "likert_scale" %}
@@ -103,7 +103,6 @@
 
           <!-- Navigation buttons -->
           <div class="form-navigation">
-            <!-- Only one step for now, so Previous is disabled and Next = Submit -->
             <button type="button" class="btn prev" disabled>Previous</button>
             <button type="submit" class="btn next">Submit</button>
           </div>

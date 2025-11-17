@@ -70,15 +70,15 @@
                 {{ ans.question.question }}
               </label>
 
+              {# SHORT ANSWER #}
               {% if ans.question.question_type == "short_answer" %}
-                <!-- Short answer text -->
                 <input class="text-response"
                        type="text"
                        value="{{ ans.shortanswer_text }}"
                        disabled />
 
+              {# LIKERT #}
               {% elif ans.question.question_type == "likert" or ans.question.question_type == "likert_scale" %}
-                <!-- Likert 1–5 dots -->
                 <div class="likert-row">
                   {% for i in "12345" %}
                     <span class="likert-dot{% if forloop.counter <= ans.likert_value %} selected{% endif %}"></span>
@@ -88,28 +88,23 @@
                   {% endif %}
                 </div>
 
+              {# MCQ #}
               {% elif ans.question.question_type == "mcq" %}
-  <div class="text-response" style="border:none; background:#f0eafa;">
-    {% if ans.choice_id %}
-      {% with found=False %}
-        {% for opt in ans.question.options.all %}
-          {% if opt.option_id == ans.choice_id %}
-            {{ opt.option_text }}
-            {% with True as found %}{% endwith %}
-          {% endif %}
-        {% endfor %}
-        {# fallback if id doesn't match any option (old data, etc.) #}
-        {% if not found %}
-          (option not found – ID: {{ ans.choice_id }})
-        {% endif %}
-      {% endwith %}
-    {% else %}
-      (no option selected)
-    {% endif %}
-  </div>
+                <div class="text-response" style="border:none; background:#f0eafa;">
+                  {% if ans.choice_id %}
+                    {# Find and show the matching option's text #}
+                    {% for opt in ans.question.options.all %}
+                      {% if opt.option_id == ans.choice_id %}
+                        {{ opt.option_text }}
+                      {% endif %}
+                    {% endfor %}
+                  {% else %}
+                    (no option selected)
+                  {% endif %}
+                </div>
 
+              {# Fallback #}
               {% else %}
-                <!-- Fallback -->
                 <input class="text-response"
                        type="text"
                        value="{{ ans.shortanswer_text|default:ans.choice_id|default:ans.likert_value }}"
