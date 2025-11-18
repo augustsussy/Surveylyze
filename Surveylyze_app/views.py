@@ -17,6 +17,9 @@ from django.shortcuts import render, get_object_or_404
 from . import models
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
+import json
+import re
+from collections import Counter
 
 from . import models
 from . import models
@@ -90,12 +93,10 @@ def saveSignUp(request):
     section_id = request.POST.get("section")
     section = get_object_or_404(models.ClassSection, pk=section_id)
 
-    # passwords must match
     if pw1 != pw2:
         messages.error(request, "Passwords do not match.")
         return redirect("signup")
 
-    # (optional) enforce Django password validators
     try:
         temp_user = User(username=email, email=email, first_name=firstname, last_name=lastname)
         validate_password(pw1, user=temp_user)
@@ -104,13 +105,12 @@ def saveSignUp(request):
             messages.error(request, msg)
         return redirect("signup")
 
-    # create everything
     try:
         with transaction.atomic():
             user = User.objects.create_user(
-                username=email,      # we use email as username
+                username=email,
                 email=email,
-                password=pw1,        # <-- pass the RAW password here
+                password=pw1,        
                 first_name=firstname,
                 last_name=lastname,
             )
@@ -142,10 +142,145 @@ def logout_view(request):
     logout(request)
     return redirect('login')
 
+
+@login_required
 def analytics_admin(request):
-    template = 'main/analytics_admin.html'
-    context = {'title': 'Admin Analytics'}
-    return render(request, template, context)
+
+    # Ensure user is staff/teacher
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "You don't have permission to access analytics.")
+        return redirect('dashboard')
+
+    # Get the teacher's surveys only
+    try:
+        teacher = request.user.teacher_profile
+        surveys = models.Survey.objects.filter(teacher=teacher)
+    except:
+        # If superuser without teacher profile, show all surveys
+        surveys = models.Survey.objects.all()
+
+    total_surveys = surveys.count()
+
+    # Total submissions across all surveys
+    total_submissions = models.SurveyHistory.objects.filter(
+        survey__in=surveys
+    ).count()
+
+    # Active surveys (published and not past due date)
+    today = timezone.now().date()
+    active_surveys = surveys.filter(
+        status='published'
+    ).filter(
+        Q(due_date__isnull=True) | Q(due_date__gte=today)
+    ).count()
+
+    text_answers = models.StudentAnswer.objects.filter(
+        history__survey__in=surveys,
+        question__question_type='short_answer',
+        shortanswer_text__isnull=False
+    ).exclude(
+        shortanswer_text=''
+    ).values_list('shortanswer_text', flat=True)
+
+    # Simple sentiment classification
+    positive_words = [
+        'good', 'great', 'excellent', 'amazing', 'love', 'like', 'best',
+        'awesome', 'wonderful', 'fantastic', 'happy', 'helpful', 'clear',
+        'interesting', 'enjoyable', 'effective', 'nice', 'fun', 'satisfied',
+        'perfect', 'brilliant', 'outstanding'
+    ]
+    negative_words = [
+        'bad', 'poor', 'terrible', 'awful', 'hate', 'dislike', 'worst',
+        'boring', 'confusing', 'difficult', 'hard', 'unclear', 'unhelpful',
+        'disappointed', 'frustrating', 'useless', 'waste', 'complicated',
+        'annoying', 'horrible'
+    ]
+
+    positive_count = 0
+    negative_count = 0
+    neutral_count = 0
+
+    for text in text_answers:
+        text_lower = text.lower()
+        has_positive = any(word in text_lower for word in positive_words)
+        has_negative = any(word in text_lower for word in negative_words)
+
+        if has_positive and not has_negative:
+            positive_count += 1
+        elif has_negative and not has_positive:
+            negative_count += 1
+        else:
+            neutral_count += 1
+
+    feedback_summary = {
+        'Positive': positive_count,
+        'Neutral': neutral_count,
+        'Negative': negative_count
+    }
+
+    likert_answers = models.StudentAnswer.objects.filter(
+        history__survey__in=surveys,
+        question__question_type__in=['likert', 'likert_scale'],
+        likert_value__isnull=False
+    ).values_list('likert_value', flat=True)
+
+    likert_labels = {
+        1: 'Strongly Disagree',
+        2: 'Disagree',
+        3: 'Neutral',
+        4: 'Agree',
+        5: 'Strongly Agree'
+    }
+
+    agreement_levels = {label: 0 for label in likert_labels.values()}
+    for value in likert_answers:
+        if value in likert_labels:
+            agreement_levels[likert_labels[value]] += 1
+
+    all_text = ' '.join(text_answers)
+
+    # Remove common stop words
+    stop_words = {
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'of', 'with', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+        'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these',
+        'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which',
+        'who', 'when', 'where', 'why', 'how', 'my', 'your', 'his', 'her',
+        'its', 'our', 'their', 'me', 'him', 'us', 'them', 'very', 'too',
+        'also', 'just', 'so', 'than', 'such', 'both', 'through', 'about',
+        'between', 'into', 'during', 'before', 'after', 'above', 'below',
+        'from', 'up', 'down', 'out', 'off', 'over', 'under', 'again', 'further',
+        'then', 'once', 'here', 'there', 'all', 'any', 'each', 'few', 'more',
+        'most', 'other', 'some', 'no', 'not', 'only', 'own', 'same', 'as', 'by'
+    }
+
+    # Extract words (alphanumeric, 3+ characters)
+    words = re.findall(r'\b[a-z]{3,}\b', all_text.lower())
+
+    # Filter out stop words and count
+    filtered_words = [w for w in words if w not in stop_words]
+    word_counts = Counter(filtered_words)
+
+    # Get top 20 keywords
+    keywords = dict(word_counts.most_common(20))
+
+    # ==========================================
+    # 5. PREPARE CONTEXT (Convert to JSON strings)
+    # ==========================================
+    context = {
+        'title': 'Analytics Dashboard',
+        'metrics': json.dumps({
+            'surveys_total': total_surveys,
+            'submissions': total_submissions,
+            'active_surveys': active_surveys,
+        }),
+        'feedback_summary': json.dumps(feedback_summary),
+        'agreement_levels': json.dumps(agreement_levels),
+        'keywords': json.dumps(keywords),
+    }
+
+    return render(request, 'main/analytics_admin.html', context)
 
 def surveybuilder(request):
     sections = models.ClassSection.objects.all().order_by("year_level", "class_name")

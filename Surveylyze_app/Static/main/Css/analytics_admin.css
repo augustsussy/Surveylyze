@@ -14,6 +14,27 @@ body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -app
 
 .app-wrapper{max-width:1200px; margin:24px auto; padding:0 12px}
 
+/* Fix chart container heights */
+.card-lite.p-3.h-100 {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-lite canvas {
+  max-height: 220px !important;
+  height: 220px !important;
+}
+
+#agreementBar {
+  max-height: 260px !important;
+  height: 260px !important;
+}
+
+/* Ensure charts stay in container */
+.card-lite {
+  overflow: hidden;
+}
+
 /* Sidebar */
 .sidebar{
   background:var(--panel); border-radius:20px; box-shadow:var(--shadow);
