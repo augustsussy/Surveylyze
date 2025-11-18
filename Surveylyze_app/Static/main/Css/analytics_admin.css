@@ -73,6 +73,27 @@ body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -app
 }
 .section-title{font-size:20px; font-weight:800; margin-bottom:12px}
 
+.survey-filter-form select {
+  border: 2px solid var(--purple-200);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 600;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.survey-filter-form select:hover {
+  border-color: var(--purple);
+  box-shadow: 0 2px 8px rgba(181, 126, 220, 0.2);
+}
+
+.survey-filter-form select:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(181, 126, 220, 0.15);
+}
+
 /* Responsive */
 @media (max-width: 1000px){
   .sidebar{margin-bottom:12px}

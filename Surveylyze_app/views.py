@@ -145,28 +145,48 @@ def logout_view(request):
 
 @login_required
 def analytics_admin(request):
+    """
+    Analytics dashboard with PER-QUESTION breakdown.
+    Shows analytics for each question separately.
+    """
 
     # Ensure user is staff/teacher
     if not (request.user.is_staff or request.user.is_superuser):
         messages.error(request, "You don't have permission to access analytics.")
         return redirect('dashboard')
 
-    # Get the teacher's surveys only
+    # Get the teacher's surveys
     try:
         teacher = request.user.teacher_profile
-        surveys = models.Survey.objects.filter(teacher=teacher)
+        all_surveys = models.Survey.objects.filter(teacher=teacher)
     except:
-        # If superuser without teacher profile, show all surveys
-        surveys = models.Survey.objects.all()
+        all_surveys = models.Survey.objects.all()
 
+    # ==========================================
+    # FILTER BY SELECTED SURVEY
+    # ==========================================
+    selected_survey_id = request.GET.get('survey_id', 'all')
+    selected_survey_id_int = None
+
+    if selected_survey_id != 'all':
+        try:
+            selected_survey_id_int = int(selected_survey_id)
+            surveys = all_surveys.filter(survey_id=selected_survey_id_int)
+            selected_survey = surveys.first()
+        except (ValueError, models.Survey.DoesNotExist):
+            surveys = all_surveys
+            selected_survey = None
+            selected_survey_id = 'all'
+    else:
+        surveys = all_surveys
+        selected_survey = None
+
+    # ==========================================
+    # 1. TOP METRICS (Overall)
+    # ==========================================
     total_surveys = surveys.count()
+    total_submissions = models.SurveyHistory.objects.filter(survey__in=surveys).count()
 
-    # Total submissions across all surveys
-    total_submissions = models.SurveyHistory.objects.filter(
-        survey__in=surveys
-    ).count()
-
-    # Active surveys (published and not past due date)
     today = timezone.now().date()
     active_surveys = surveys.filter(
         status='published'
@@ -174,15 +194,17 @@ def analytics_admin(request):
         Q(due_date__isnull=True) | Q(due_date__gte=today)
     ).count()
 
-    text_answers = models.StudentAnswer.objects.filter(
-        history__survey__in=surveys,
-        question__question_type='short_answer',
-        shortanswer_text__isnull=False
-    ).exclude(
-        shortanswer_text=''
-    ).values_list('shortanswer_text', flat=True)
+    # ==========================================
+    # 2. PER-QUESTION ANALYTICS (NEW!)
+    # ==========================================
+    question_analytics = []
 
-    # Simple sentiment classification
+    # Get all questions from selected surveys
+    questions = models.Question.objects.filter(
+        survey__in=surveys
+    ).select_related('survey').order_by('survey__title', 'order_number')
+
+    # Sentiment word lists
     positive_words = [
         'good', 'great', 'excellent', 'amazing', 'love', 'like', 'best',
         'awesome', 'wonderful', 'fantastic', 'happy', 'helpful', 'clear',
@@ -196,50 +218,6 @@ def analytics_admin(request):
         'annoying', 'horrible'
     ]
 
-    positive_count = 0
-    negative_count = 0
-    neutral_count = 0
-
-    for text in text_answers:
-        text_lower = text.lower()
-        has_positive = any(word in text_lower for word in positive_words)
-        has_negative = any(word in text_lower for word in negative_words)
-
-        if has_positive and not has_negative:
-            positive_count += 1
-        elif has_negative and not has_positive:
-            negative_count += 1
-        else:
-            neutral_count += 1
-
-    feedback_summary = {
-        'Positive': positive_count,
-        'Neutral': neutral_count,
-        'Negative': negative_count
-    }
-
-    likert_answers = models.StudentAnswer.objects.filter(
-        history__survey__in=surveys,
-        question__question_type__in=['likert', 'likert_scale'],
-        likert_value__isnull=False
-    ).values_list('likert_value', flat=True)
-
-    likert_labels = {
-        1: 'Strongly Disagree',
-        2: 'Disagree',
-        3: 'Neutral',
-        4: 'Agree',
-        5: 'Strongly Agree'
-    }
-
-    agreement_levels = {label: 0 for label in likert_labels.values()}
-    for value in likert_answers:
-        if value in likert_labels:
-            agreement_levels[likert_labels[value]] += 1
-
-    all_text = ' '.join(text_answers)
-
-    # Remove common stop words
     stop_words = {
         'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
         'of', 'with', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
@@ -255,29 +233,120 @@ def analytics_admin(request):
         'most', 'other', 'some', 'no', 'not', 'only', 'own', 'same', 'as', 'by'
     }
 
-    # Extract words (alphanumeric, 3+ characters)
-    words = re.findall(r'\b[a-z]{3,}\b', all_text.lower())
+    for question in questions:
+        q_data = {
+            'question_id': question.question_id,
+            'question_text': question.question,
+            'question_type': question.question_type,
+            'survey_title': question.survey.title,
+            'order_number': question.order_number,
+        }
 
-    # Filter out stop words and count
-    filtered_words = [w for w in words if w not in stop_words]
-    word_counts = Counter(filtered_words)
+        # Get answers for this specific question
+        answers = models.StudentAnswer.objects.filter(
+            question=question,
+            history__survey__in=surveys
+        )
 
-    # Get top 20 keywords
-    keywords = dict(word_counts.most_common(20))
+        # === SHORT ANSWER QUESTIONS ===
+        if question.question_type == 'short_answer':
+            text_answers = answers.exclude(
+                shortanswer_text__isnull=True
+            ).exclude(
+                shortanswer_text=''
+            ).values_list('shortanswer_text', flat=True)
+
+            # Sentiment analysis
+            positive_count = 0
+            negative_count = 0
+            neutral_count = 0
+
+            for text in text_answers:
+                text_lower = text.lower()
+                has_positive = any(word in text_lower for word in positive_words)
+                has_negative = any(word in text_lower for word in negative_words)
+
+                if has_positive and not has_negative:
+                    positive_count += 1
+                elif has_negative and not has_positive:
+                    negative_count += 1
+                else:
+                    neutral_count += 1
+
+            q_data['sentiment'] = {
+                'Positive': positive_count,
+                'Neutral': neutral_count,
+                'Negative': negative_count
+            }
+
+            # Keywords
+            all_text = ' '.join(text_answers)
+            words = re.findall(r'\b[a-z]{3,}\b', all_text.lower())
+            filtered_words = [w for w in words if w not in stop_words]
+            word_counts = Counter(filtered_words)
+            q_data['keywords'] = dict(word_counts.most_common(15))
+
+            q_data['response_count'] = len(text_answers)
+
+        # === LIKERT QUESTIONS ===
+        elif question.question_type in ['likert', 'likert_scale']:
+            likert_values = answers.exclude(
+                likert_value__isnull=True
+            ).values_list('likert_value', flat=True)
+
+            likert_labels = {
+                1: 'Strongly Disagree',
+                2: 'Disagree',
+                3: 'Neutral',
+                4: 'Agree',
+                5: 'Strongly Agree'
+            }
+
+            agreement_levels = {label: 0 for label in likert_labels.values()}
+            for value in likert_values:
+                if value in likert_labels:
+                    agreement_levels[likert_labels[value]] += 1
+
+            q_data['agreement_levels'] = agreement_levels
+            q_data['response_count'] = len(likert_values)
+
+        # === MCQ QUESTIONS ===
+        elif question.question_type == 'mcq':
+            mcq_answers = answers.exclude(choice_id__isnull=True)
+
+            # Get all options for this question
+            options = models.Option.objects.filter(question=question)
+            option_counts = {opt.option_text: 0 for opt in options}
+
+            for answer in mcq_answers:
+                try:
+                    option = models.Option.objects.get(option_id=answer.choice_id)
+                    option_counts[option.option_text] += 1
+                except models.Option.DoesNotExist:
+                    continue
+
+            q_data['mcq_distribution'] = option_counts
+            q_data['response_count'] = mcq_answers.count()
+
+        # Only add questions that have responses
+        if q_data.get('response_count', 0) > 0:
+            question_analytics.append(q_data)
 
     # ==========================================
-    # 5. PREPARE CONTEXT (Convert to JSON strings)
+    # 3. PREPARE CONTEXT
     # ==========================================
     context = {
         'title': 'Analytics Dashboard',
+        'all_surveys': all_surveys.order_by('-created_date'),
+        'selected_survey_id': selected_survey_id,
+        'selected_survey_id_int': selected_survey_id_int,
+        'selected_survey': selected_survey,
         'metrics': json.dumps({
             'surveys_total': total_surveys,
             'submissions': total_submissions,
             'active_surveys': active_surveys,
         }),
-        'feedback_summary': json.dumps(feedback_summary),
-        'agreement_levels': json.dumps(agreement_levels),
-        'keywords': json.dumps(keywords),
+        'question_analytics': json.dumps(question_analytics),
     }
 
     return render(request, 'main/analytics_admin.html', context)

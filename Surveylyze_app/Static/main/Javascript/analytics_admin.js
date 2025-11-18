@@ -1,7 +1,6 @@
-// ===== ANALYTICS DASHBOARD - Real Backend Data =====
+// ===== PER-QUESTION ANALYTICS DASHBOARD =====
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Get data from hidden div (passed from Django)
   const dataEl = document.getElementById("analytics-data");
 
   if (!dataEl) {
@@ -9,15 +8,12 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // Parse JSON data from data attributes
   const DATA = {
-    metrics: JSON.parse(dataEl.dataset.metrics || '{}'),
-    feedback_summary: JSON.parse(dataEl.dataset.feedbackSummary || '{}'),
-    agreement_levels: JSON.parse(dataEl.dataset.agreementLevels || '{}'),
-    keywords: JSON.parse(dataEl.dataset.keywords || '{}')
+    metrics: JSON.parse(dataEl.getAttribute('data-metrics') || '{}'),
+    question_analytics: JSON.parse(dataEl.getAttribute('data-question-analytics') || '[]')
   };
 
-  console.log("Analytics Data Loaded:", DATA); // Debug log
+  console.log("Analytics Data Loaded:", DATA);
 
   renderAnalytics(DATA);
 });
@@ -35,181 +31,258 @@ function renderAnalytics(DATA) {
   if (statActive) statActive.textContent = DATA.metrics.active_surveys || 0;
 
   // ==========================================
-  // 2. TAG CLOUD (Keywords)
+  // 2. RENDER PER-QUESTION ANALYTICS
   // ==========================================
-  const tagRoot = document.getElementById("tagCloud");
-  if (tagRoot) {
-    tagRoot.innerHTML = ''; // Clear existing
+  const container = document.getElementById("question-analytics-container");
 
-    const keywordEntries = Object.entries(DATA.keywords || {});
-
-    if (keywordEntries.length === 0) {
-      tagRoot.innerHTML = '<span style="color: #999;">No keywords available yet.</span>';
-    } else {
-      const freqs = Object.values(DATA.keywords);
-      const minF = Math.min(...freqs);
-      const maxF = Math.max(...freqs);
-
-      // Scale function: maps frequency to font size multiplier
-      const scale = v => {
-        if (maxF === minF) return 1;
-        return 0.6 + ((v - minF) / (maxF - minF)) * 1.6; // Range: 0.6x to 2.2x
-      };
-
-      // Sort by frequency (highest first)
-      keywordEntries.sort((a, b) => b[1] - a[1]);
-
-      keywordEntries.forEach(([word, freq]) => {
-        const span = document.createElement("span");
-        span.className = "tag";
-        span.textContent = word;
-        span.style.fontSize = (scale(freq) * 14) + "px";
-        tagRoot.appendChild(span);
-      });
-    }
+  if (!container) {
+    console.error("Question analytics container not found!");
+    return;
   }
 
-  // ==========================================
-  // 3. FEEDBACK PIE CHART
-  // ==========================================
-  const feedbackCanvas = document.getElementById("feedbackPie");
-  if (feedbackCanvas) {
-    const feedbackData = DATA.feedback_summary || {};
-    const hasData = Object.values(feedbackData).some(v => v > 0);
+  if (DATA.question_analytics.length === 0) {
+    container.innerHTML = `
+      <div class="card card-lite p-4 text-center">
+        <h5 class="mb-2">No Response Data Yet</h5>
+        <p class="text-muted">Analytics will appear here once students submit survey responses.</p>
+      </div>
+    `;
+    return;
+  }
 
-    if (!hasData) {
-      // Show "No data" message
-      feedbackCanvas.parentElement.innerHTML = `
-        <h6 class="mb-3">Overall Feedback Summary</h6>
-        <div style="text-align: center; padding: 40px; color: #999;">
-          No feedback data available yet.
+  // Clear container
+  container.innerHTML = '';
+
+  // Render each question
+  DATA.question_analytics.forEach((q, index) => {
+    const questionCard = createQuestionCard(q, index);
+    container.appendChild(questionCard);
+  });
+}
+
+function createQuestionCard(q, index) {
+  // Main card
+  const card = document.createElement("div");
+  card.className = "card card-lite p-3 mb-3";
+
+  // Header with question info
+  const header = document.createElement("div");
+  header.style.cssText = "border-bottom: 2px solid #e8dbff; padding-bottom: 12px; margin-bottom: 16px;";
+  header.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: start;">
+      <div>
+        <h5 style="margin: 0 0 4px 0; color: #4c3f8f; font-weight: 700;">
+          Question ${q.order_number}: ${q.question_text}
+        </h5>
+        <small style="color: #999; font-weight: 600;">
+          ${q.survey_title} • ${q.response_count} response${q.response_count > 1 ? 's' : ''}
+        </small>
+      </div>
+      <span style="background: #e8dbff; color: #4c3f8f; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 12px;">
+        ${q.question_type.replace('_', ' ').toUpperCase()}
+      </span>
+    </div>
+  `;
+  card.appendChild(header);
+
+  // Content area
+  const content = document.createElement("div");
+
+  // === SHORT ANSWER ===
+  if (q.question_type === 'short_answer') {
+    content.innerHTML = `
+      <div class="row g-3">
+        <div class="col-12 col-lg-6">
+          <h6 class="mb-3">Sentiment Analysis</h6>
+          <canvas id="sentiment-${q.question_id}" style="max-height: 220px;"></canvas>
         </div>
-      `;
-    } else {
-      new Chart(feedbackCanvas, {
-        type: "pie",
-        data: {
-          labels: Object.keys(feedbackData),
-          datasets: [{
-            data: Object.values(feedbackData),
-            backgroundColor: [
-              '#63c665',  // Positive - Green
-              '#a36bf2',  // Neutral - Purple
-              '#e85d5d'   // Negative - Red
-            ],
-            borderWidth: 2,
-            borderColor: '#fff'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                padding: 15,
-                font: {
-                  size: 13,
-                  weight: 600
-                }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.parsed || 0;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                  return `${label}: ${value} (${percentage}%)`;
-                }
-              }
+        <div class="col-12 col-lg-6">
+          <h6 class="mb-3">Common Keywords</h6>
+          <div id="keywords-${q.question_id}" class="tagcloud"></div>
+        </div>
+      </div>
+    `;
+    card.appendChild(content);
+
+    // Render after adding to DOM
+    setTimeout(() => {
+      renderSentimentChart(q);
+      renderKeywords(q);
+    }, 0);
+  }
+
+  // === LIKERT SCALE ===
+  else if (q.question_type === 'likert' || q.question_type === 'likert_scale') {
+    content.innerHTML = `
+      <h6 class="mb-3">Agreement Distribution</h6>
+      <canvas id="likert-${q.question_id}" style="max-height: 260px;"></canvas>
+    `;
+    card.appendChild(content);
+
+    setTimeout(() => {
+      renderLikertChart(q);
+    }, 0);
+  }
+
+  // === MCQ ===
+  else if (q.question_type === 'mcq') {
+    content.innerHTML = `
+      <h6 class="mb-3">Response Distribution</h6>
+      <canvas id="mcq-${q.question_id}" style="max-height: 260px;"></canvas>
+    `;
+    card.appendChild(content);
+
+    setTimeout(() => {
+      renderMCQChart(q);
+    }, 0);
+  }
+
+  return card;
+}
+
+// ==========================================
+// CHART RENDERERS
+// ==========================================
+function renderSentimentChart(q) {
+  const canvas = document.getElementById(`sentiment-${q.question_id}`);
+  if (!canvas) return;
+
+  const hasData = Object.values(q.sentiment).some(v => v > 0);
+
+  if (!hasData) {
+    canvas.parentElement.innerHTML = `
+      <h6 class="mb-3">Sentiment Analysis</h6>
+      <div style="text-align: center; padding: 40px; color: #999;">No sentiment data</div>
+    `;
+    return;
+  }
+
+  new Chart(canvas, {
+    type: "pie",
+    data: {
+      labels: Object.keys(q.sentiment),
+      datasets: [{
+        data: Object.values(q.sentiment),
+        backgroundColor: ['#63c665', '#a36bf2', '#e85d5d'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${label}: ${value} (${percentage}%)`;
             }
           }
         }
-      });
+      }
     }
+  });
+}
+
+function renderKeywords(q) {
+  const container = document.getElementById(`keywords-${q.question_id}`);
+  if (!container) return;
+
+  const keywords = Object.entries(q.keywords || {});
+
+  if (keywords.length === 0) {
+    container.innerHTML = '<span style="color: #999;">No keywords available</span>';
+    return;
   }
 
-  // ==========================================
-  // 4. AGREEMENT LEVELS BAR CHART
-  // ==========================================
-  const agreementCanvas = document.getElementById("agreementBar");
-  if (agreementCanvas) {
-    const agreementData = DATA.agreement_levels || {};
-    const hasData = Object.values(agreementData).some(v => v > 0);
+  container.innerHTML = '';
+  keywords.sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([word, freq]) => {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = word;
+    tag.title = `${freq} mention${freq > 1 ? 's' : ''}`;
+    container.appendChild(tag);
+  });
+}
 
-    if (!hasData) {
-      // Show "No data" message
-      agreementCanvas.parentElement.innerHTML = `
-        <h6 class="mb-3">Agreement Levels (Likert Scale)</h6>
-        <div style="text-align: center; padding: 40px; color: #999;">
-          No Likert scale responses yet.
-        </div>
-      `;
-    } else {
-      new Chart(agreementCanvas, {
-        type: "bar",
-        data: {
-          labels: Object.keys(agreementData),
-          datasets: [{
-            label: 'Responses',
-            data: Object.values(agreementData),
-            backgroundColor: [
-              '#e85d5d',  // Strongly Disagree - Red
-              '#ff9a76',  // Disagree - Light Red
-              '#ffd966',  // Neutral - Yellow
-              '#90d890',  // Agree - Light Green
-              '#63c665'   // Strongly Agree - Green
-            ],
-            borderWidth: 0,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                stepSize: 1,
-                font: {
-                  size: 12,
-                  weight: 600
-                }
-              },
-              grid: {
-                color: '#f0f0f0'
-              }
-            },
-            x: {
-              ticks: {
-                font: {
-                  size: 11,
-                  weight: 600
-                }
-              },
-              grid: {
-                display: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return `Responses: ${context.parsed.y}`;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
+function renderLikertChart(q) {
+  const canvas = document.getElementById(`likert-${q.question_id}`);
+  if (!canvas) return;
+
+  const hasData = Object.values(q.agreement_levels).some(v => v > 0);
+
+  if (!hasData) {
+    canvas.parentElement.innerHTML = `
+      <h6 class="mb-3">Agreement Distribution</h6>
+      <div style="text-align: center; padding: 40px; color: #999;">No responses yet</div>
+    `;
+    return;
   }
+
+  new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: Object.keys(q.agreement_levels),
+      datasets: [{
+        label: 'Responses',
+
+        data: Object.values(q.agreement_levels),
+        backgroundColor: ['#e85d5d', '#ff9a76', '#ffd966', '#90d890', '#63c665'],
+        borderWidth: 0,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        x: { ticks: { font: { size: 11, weight: 600 } } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function renderMCQChart(q) {
+  const canvas = document.getElementById(`mcq-${q.question_id}`);
+  if (!canvas) return;
+
+  const hasData = Object.values(q.mcq_distribution).some(v => v > 0);
+
+  if (!hasData) {
+    canvas.parentElement.innerHTML = `
+      <h6 class="mb-3">Response Distribution</h6>
+      <div style="text-align: center; padding: 40px; color: #999;">No responses yet</div>
+    `;
+    return;
+  }
+
+  new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: Object.keys(q.mcq_distribution),
+      datasets: [{
+        label: 'Responses',
+        data: Object.values(q.mcq_distribution),
+        backgroundColor: '#B57EDC',
+        borderWidth: 0,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y', // Horizontal bars
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
 }
