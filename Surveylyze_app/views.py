@@ -110,7 +110,7 @@ def saveSignUp(request):
             user = User.objects.create_user(
                 username=email,
                 email=email,
-                password=pw1,        
+                password=pw1,
                 first_name=firstname,
                 last_name=lastname,
             )
