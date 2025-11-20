@@ -620,18 +620,24 @@ def take_survey(request, survey_id):
         "questions": questions,
     })
 
+
 @login_required
 def response_history(request, history_id):
-    try:
-        student = request.user.student_profile
-    except Exception:
-        student = get_object_or_404(models.Student, user=request.user)
+    # Get the history record
+    history = get_object_or_404(models.SurveyHistory, pk=history_id)
 
-    history = get_object_or_404(
-        models.SurveyHistory,
-        pk=history_id,
-        student=student,  # <= important filter
-    )
+    # 🔹 CHECK PERMISSIONS
+    # Students can only view their own responses
+    # Teachers/admins can view any response
+    if not (request.user.is_staff or request.user.is_superuser):
+        try:
+            student = request.user.student_profile
+            if history.student != student:
+                messages.error(request, "You don't have permission to view this response.")
+                return redirect('dashboard')
+        except:
+            messages.error(request, "Invalid access.")
+            return redirect('dashboard')
 
     answers = history.answers.select_related("question").all().order_by(
         "question__order_number"
@@ -641,3 +647,77 @@ def response_history(request, history_id):
         "history": history,
         "answers": answers,
     })
+
+
+@login_required
+def admin_responses(request):
+    """
+    Admin/Teacher view to see ALL student responses across surveys.
+    With search and filter capabilities.
+    """
+    # Ensure user is staff/teacher
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "You don't have permission to access this page.")
+        return redirect('dashboard')
+
+    # Get the teacher's surveys
+    try:
+        teacher = request.user.teacher_profile
+        teacher_surveys = models.Survey.objects.filter(teacher=teacher)
+    except:
+        # Superuser can see all
+        teacher_surveys = models.Survey.objects.all()
+
+    # Get all responses for teacher's surveys
+    responses = models.SurveyHistory.objects.filter(
+        survey__in=teacher_surveys
+    ).select_related('survey', 'student', 'student__user').order_by('-submitted_at')
+
+    # 🔹 SEARCH by student name or survey title
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        responses = responses.filter(
+            Q(student__firstname__icontains=search_query) |
+            Q(student__lastname__icontains=search_query) |
+            Q(survey__title__icontains=search_query)
+        )
+
+    # 🔹 FILTER by survey
+    survey_filter = request.GET.get('survey', '')
+    if survey_filter:
+        responses = responses.filter(survey_id=survey_filter)
+
+    # 🔹 FILTER by date range
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
+            responses = responses.filter(submitted_at__date__gte=from_date)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
+            responses = responses.filter(submitted_at__date__lte=to_date)
+        except ValueError:
+            pass
+
+    # 🔹 PAGINATION (10 per page)
+    from django.core.paginator import Paginator
+    paginator = Paginator(responses, 10)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'responses': page_obj,
+        'all_surveys': teacher_surveys.order_by('title'),
+        'search_query': search_query,
+        'selected_survey': survey_filter,
+        'date_from': date_from,
+        'date_to': date_to,
+    }
+
+    return render(request, 'main/admin_responses.html', context)

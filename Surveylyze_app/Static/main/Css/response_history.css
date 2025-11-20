@@ -1,138 +1,100 @@
-body {
-  background: linear-gradient(180deg, #e1caff 0%, #e3d0f5 100%);
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 0;
+:root{
+  --bg:#f1e8f8;
+  --panel:#ffffff;
+  --purple:#B57EDC;
+  --purple-600:#B57EDC;
+  --purple-200:#e8dbff;
+  --text:#1f1f29;
+  --muted:#63637a;
+  --shadow:0 8px 24px rgba(18,16,28,.08);
 }
-.centered-card {
-  background: #fff;
-  margin: 3rem auto;
-  border-radius: 14px;
-  max-width: 540px;
-  box-shadow: 0 4px 16px rgba(127, 66, 204, 0.10), 0 1.5px 8px rgba(127, 66, 204, 0.06);
-  padding: 0;
+
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial}
+
+.app-wrapper{max-width:1200px; margin:24px auto; padding:0 12px}
+
+/* Fix chart container heights */
+.card-lite.p-3.h-100 {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-lite canvas {
+  max-height: 220px !important;
+  height: 220px !important;
+}
+
+#agreementBar {
+  max-height: 260px !important;
+  height: 260px !important;
+}
+
+/* Ensure charts stay in container */
+.card-lite {
   overflow: hidden;
 }
-.card-header {
-  background: #b985f4;
-  color: #fff;
-  padding: 1rem 2rem;
+
+/* Sidebar */
+.sidebar{
+  background:var(--panel); border-radius:20px; box-shadow:var(--shadow);
+  padding:16px; height:100%;
+}
+.profile{
+  display:flex; align-items:center; gap:12px; background:var(--purple-200);
+  padding:12px; border-radius:14px; font-weight:600;
+}
+.avatar{width:36px; height:36px; border-radius:50%;
+  background:linear-gradient(135deg, var(--purple), var(--purple-600));}
+.role{font-weight:600; font-size:12px; color:#4c3f8f}
+.nav-link{
+  font-weight:600; color:var(--text);
+  border-radius:12px; padding:10px 12px;
+}
+.nav-link.active, .nav-link:hover{background:var(--purple-200); color:var(--purple-600)}
+
+/* Main panel */
+.panel{
+  background:var(--panel); border-radius:20px; box-shadow:var(--shadow);
+  padding:20px;
+}
+
+.card-lite{
+  border:none; border-radius:16px; box-shadow:var(--shadow);
+}
+.stat .label{color:var(--muted); font-weight:700; text-transform:uppercase; font-size:12px; letter-spacing:.06em}
+.stat .value{font-size:32px; font-weight:800}
+.stat .sub{color:var(--muted); font-weight:600; font-size:13px}
+
+.tagcloud{display:flex; flex-wrap:wrap; gap:8px}
+.tagcloud .tag{
+  background:#f7f7ff; border:1px solid #ecebff; color:#4c3f8f;
+  padding:6px 10px; border-radius:999px; font-weight:700
+}
+.section-title{font-size:20px; font-weight:800; margin-bottom:12px}
+
+.survey-filter-form select {
+  border: 2px solid var(--purple-200);
+  border-radius: 12px;
+  padding: 8px 12px;
   font-weight: 600;
-  font-size: 1rem;
-  border-radius: 14px 14px 0 0;
-  letter-spacing: .03rem;
-}
-.section-title {
-  font-size: 1.35rem;
-  font-weight: 700;
-  margin: 1.5rem 2rem 0 .5rem;
-  color: #30204C;
-  letter-spacing: .02rem;
-}
-.card-section {
-  padding: 2rem 2rem 1.2rem 2rem;
-}
-.survey-info-table {
-  background: #f3eeff;
-  border-radius: 8px;
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  width: 100%;
-  font-size: .99rem;
-  font-weight: 500;
-}
-.survey-info-table th, .survey-info-table td {
-  padding: .65rem 1rem;
-  text-align: left;
-  border: none;
-}
-.survey-info-table th {
-  color: #65449d;
-  font-weight: 700;
-  font-size: .96rem;
-}
-.survey-info-table td {
-  color: #333;
-}
-.table-row-divider {
-  border-bottom: 1px solid #dfcfff;
-}
-.response-section {
-  border-radius: 9px;
-  padding: 1.3rem 1.2rem;
-  background: #f6f1ff;
-  margin-bottom: 1rem;
-}
-.response-section .section-title {
-  margin: 0 0 1rem 0;
-  font-size: 1.07rem;
-  letter-spacing:0;
-}
-.survey-question {
-  margin-bottom: 1.2rem;
-}
-.survey-question label {
-  font-weight: 500;
-  color: #55407B;
-  margin-bottom: .4rem;
-  display: block;
-  font-size: 1rem;
-}
-
-/* Likert row + dots (read-only) */
-.likert-row {
-  margin: .5rem 0 0 0;
-  display: flex;
-  gap: .6rem;
-}
-.likert-dot {
-  display: inline-block;
-  margin-right: .3rem;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  border: 2px solid #c5a5ea;
-  background: #fff;
-  position: relative;
-  cursor: default;          /* no hand cursor */
-  pointer-events: none;     /* truly non-interactive */
-}
-.likert-dot.selected {
-  background: #6d35be;
-  border: 2px solid #a16cd3;
-}
-/* remove hover "click" feel */
-.likert-dot:not(.selected):hover {
-  border: 2px solid #c5a5ea;
-}
-
-.text-response {
-  background: #f0eafa;
-  border: none;
-  border-radius: 7px;
-  color: #4e397a;
-  padding: .8rem 1rem;
-  width: 100%;
-  font-size: .98rem;
-  margin-top: .3rem;
-  box-sizing: border-box;
-}
-.back-btn {
-  display: inline-block;
-  margin: 1.2rem 2rem 0;
-  text-decoration: none;
-  font-weight: 700;
-  color: #7d53c9;
-  background: transparent;
-  border: none;
-  font-size: 1rem;
-  letter-spacing: .01em;
+  background: white;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
-@media (max-width: 700px) {
-  .centered-card { max-width: 99vw; }
-  .card-header, .card-section, .back-btn {
-    padding-left: .7rem;
-    padding-right: .7rem;
-  }
+
+.survey-filter-form select:hover {
+  border-color: var(--purple);
+  box-shadow: 0 2px 8px rgba(181, 126, 220, 0.2);
+}
+
+.survey-filter-form select:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(181, 126, 220, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 1000px){
+  .sidebar{margin-bottom:12px}
 }
