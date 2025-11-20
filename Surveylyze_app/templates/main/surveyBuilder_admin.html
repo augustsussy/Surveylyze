@@ -14,43 +14,59 @@
   <link rel="stylesheet" href="{% static 'main/css/surveyBuilder_admin.css' %}">
 </head>
 <body>
-  <div class="shell">
- <div class="topbar">
-  <div class="actions">
-    <button id="btnNew" class="btn btn-ghost"><i class="bi bi-plus-lg"></i> New survey</button>
-
-    <!-- Save as draft -->
-    <button
-      id="btnSave"
-      class="btn btn-primary"
-      type="submit"
-      form="surveySettingsForm"
-      name="action"
-      value="draft">
-      Save Draft
-    </button>
-
-    <div class="split">
-      <!-- Publish -->
-      <button
-        id="btnPublish"
-        class="btn btn-primary"
-        type="submit"
-        form="surveySettingsForm"
-        name="action"
-        value="publish">
-        Publish Survey
-      </button>
-
-      <button class="btn btn-primary split-caret" id="btnMenu"><i class="bi bi-caret-down-fill"></i></button>
-      <ul class="menu" id="menu">
-        <li><button id="btnExport" class="menu-item"><i class="bi bi-braces"></i> Export JSON</button></li>
-      </ul>
-    </div>
+   <div id="builder-state"
+       data-state='{{ builder_state_json|default:""|escapejs }}'>
   </div>
-</div>
+  {# ====== step 4a: data for JS (edit mode + preloaded state) ====== #}
+  <div id="builder-data"
+       data-state='{{ builder_state_json|default:""|escapejs }}'
+       data-editing="{{ editing|default:False|yesno:'true,false' }}"
+       data-survey-id="{{ survey_id|default:'' }}">
+  </div>
 
+  <div class="shell">
+    <div class="topbar">
+      <div class="actions">
+        <button id="btnNew" class="btn btn-ghost">
+          <i class="bi bi-plus-lg"></i> New survey
+        </button>
 
+        <!-- Save as draft -->
+        <button
+          id="btnSave"
+          class="btn btn-primary"
+          type="submit"
+          form="surveySettingsForm"
+          name="action"
+          value="draft">
+          Save Draft
+        </button>
+
+        <div class="split">
+          <!-- Publish -->
+          <button
+            id="btnPublish"
+            class="btn btn-primary"
+            type="submit"
+            form="surveySettingsForm"
+            name="action"
+            value="publish">
+            Publish Survey
+          </button>
+
+          <button class="btn btn-primary split-caret" id="btnMenu">
+            <i class="bi bi-caret-down-fill"></i>
+          </button>
+          <ul class="menu" id="menu">
+            <li>
+              <button id="btnExport" class="menu-item">
+                <i class="bi bi-braces"></i> Export JSON
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
 
     <div class="grid">
       <!-- Toolbox (buttons are draggable) -->
@@ -80,35 +96,38 @@
         <h3>Survey Settings</h3>
 
         <!-- You can wrap in a form if you plan to POST -->
-<form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
-  {% csrf_token %}
+        <form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
+          {% csrf_token %}
 
-  <!-- only this hidden input is needed -->
-  <input type="hidden" id="questionsData" name="questions">
+          {# ====== step 4b: identify which survey is being edited ====== #}
+          <input type="hidden" name="survey_id" id="surveyIdField" value="{{ survey_id|default:'' }}">
 
-  <!-- Survey Title -->
-  <label class="label" for="surveyTitle">Survey Title</label>
-  <div class="field">
-    <input
-      type="text"
-      id="surveyTitle"
-      name="title"
-      class="control"
-      autocomplete="off"
-      required
-    >
-  </div>
+          <!-- hidden JSON for questions -->
+          <input type="hidden" id="questionsData" name="questions">
 
-<!-- Survey Description -->
-<label class="label" for="surveyDescription">Description</label>
-<div class="field">
-  <textarea
-    id="surveyDescription"
-    name="description"
-    class="control"
-    rows="4"
-  ></textarea>
-</div>
+          <!-- Survey Title -->
+          <label class="label" for="surveyTitle">Survey Title</label>
+          <div class="field">
+            <input
+              type="text"
+              id="surveyTitle"
+              name="title"
+              class="control"
+              autocomplete="off"
+              required
+            >
+          </div>
+
+          <!-- Survey Description -->
+          <label class="label" for="surveyDescription">Description</label>
+          <div class="field">
+            <textarea
+              id="surveyDescription"
+              name="description"
+              class="control"
+              rows="4"
+            ></textarea>
+          </div>
 
           <!-- Assign To (Class Sections) -->
           <label class="label">Assign to</label>

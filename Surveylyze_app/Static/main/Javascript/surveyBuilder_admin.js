@@ -290,13 +290,19 @@ function persist() {
 }
 
 function restore() {
+  // 1) If server sent a builder state (edit mode), use that
+  if (loadInitialStateFromServer()) {
+    return;
+  }
+
+  // 2) Otherwise fall back to localStorage (new survey / drafts)
   const raw = localStorage.getItem('purple_survey_builder');
   if (raw) {
     const s = JSON.parse(raw);
     Object.assign(state.meta, s.meta || {});
     state.questions = s.questions || [];
   } else {
-    // starter questions
+    // starter questions for a brand new survey
     state.questions = [
       TEMPLATES.short_answer(),
       TEMPLATES.likert(),
@@ -315,6 +321,7 @@ function restore() {
     statusToggle.checked = !!state.meta.published;
   }
 }
+
 
 /* ===============================
    TOOLBOX (click + drag)
@@ -671,12 +678,129 @@ if (settingsForm) {
   });
 }
 
+const builderDataEl = document.getElementById('builder-data');
+let EDIT_MODE = false;
+let PRELOADED_STATE = null;
+let EDIT_SURVEY_ID = null;
+
+if (builderDataEl) {
+  const rawState = builderDataEl.dataset.state;
+  const editingFlag = builderDataEl.dataset.editing === "true";
+  const surveyId = builderDataEl.dataset.surveyId || "";
+
+  EDIT_MODE = editingFlag;
+  EDIT_SURVEY_ID = surveyId;
+
+  if (rawState) {
+    try {
+      PRELOADED_STATE = JSON.parse(rawState);
+    } catch (err) {
+      console.error("Failed to parse preloaded builder state", err);
+    }
+  }
+}
+
+function loadInitialStateFromServer() {
+  const el = document.getElementById('builder-state');
+  if (!el) return false;
+
+  const raw = el.dataset.state;
+  if (!raw) return false;
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    // meta
+    if (parsed.meta) {
+      Object.assign(state.meta, parsed.meta);
+    }
+
+    // questions
+    if (Array.isArray(parsed.questions)) {
+      state.questions = parsed.questions;
+    }
+
+    // also prefill the form fields from meta
+    const titleInput = document.getElementById('surveyTitle');
+    const descInput  = document.getElementById('surveyDescription');
+
+    if (titleInput && parsed.meta && parsed.meta.title) {
+      titleInput.value = parsed.meta.title;
+    }
+    if (descInput && parsed.meta && parsed.meta.description) {
+      descInput.value = parsed.meta.description;
+    }
+    if (assignSelect && parsed.meta && parsed.meta.assignTo) {
+      assignSelect.value = parsed.meta.assignTo;
+    }
+    if (dueDateInput && parsed.meta && parsed.meta.dueDate) {
+      dueDateInput.value = parsed.meta.dueDate;
+    }
+    if (statusToggle && parsed.meta) {
+      statusToggle.checked = !!parsed.meta.published;
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Error parsing builder state from server:', e);
+    return false;
+  }
+}
 
 
 /* ===============================
    INIT
 ================================= */
 
-localStorage.removeItem('purple_survey_builder');
+if (EDIT_MODE && PRELOADED_STATE) {
+  // Use server data when editing
+  const meta = PRELOADED_STATE.meta || {};
+  const qlist = PRELOADED_STATE.questions || [];
+
+  state.meta.assignTo  = meta.assignTo || "";
+  state.meta.dueDate   = meta.dueDate || "";
+  state.meta.published = !!meta.published;
+
+  state.questions = qlist.map(q => ({
+    id: q.id || uid(),
+    type: q.type,
+    text: q.text || "",
+    options: q.options || []
+  }));
+
+  // Fill form fields
+  const titleInput = document.getElementById("surveyTitle");
+  const descInput  = document.getElementById("surveyDescription");
+
+  if (titleInput && meta.title) {
+    titleInput.value = meta.title;
+  }
+  if (descInput && typeof meta.description !== "undefined") {
+    descInput.value = meta.description;
+  }
+  if (assignSelect && meta.assignTo) {
+    assignSelect.value = meta.assignTo;
+  }
+  if (dueDateInput && meta.dueDate) {
+    dueDateInput.value = meta.dueDate;
+  }
+  if (statusToggle) {
+    statusToggle.checked = !!meta.published;
+  }
+
+  // also ensure hidden survey_id field is set
+  const surveyIdField = document.getElementById("surveyIdField");
+  if (surveyIdField && EDIT_SURVEY_ID) {
+    surveyIdField.value = EDIT_SURVEY_ID;
+  }
+} else {
+  // normal "new survey" behavior
+  // (you can keep/adjust your existing restore logic here)
+  // localStorage.removeItem('purple_survey_builder'); // optional
+  restore();
+}
+
 restore();
 render();
+
+
