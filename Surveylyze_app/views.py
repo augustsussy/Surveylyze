@@ -651,71 +651,114 @@ def response_history(request, history_id):
 
 @login_required
 def admin_responses(request):
-    """
-    Admin/Teacher view to see ALL student responses across surveys.
-    With search and filter capabilities.
-    """
-    # Ensure user is staff/teacher
+    """Response management page with search and filters"""
+
     if not (request.user.is_staff or request.user.is_superuser):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('dashboard')
 
-    # Get the teacher's surveys
+    # Get all surveys for the teacher
     try:
         teacher = request.user.teacher_profile
-        teacher_surveys = models.Survey.objects.filter(teacher=teacher)
+        all_surveys = models.Survey.objects.filter(teacher=teacher)
     except:
-        # Superuser can see all
-        teacher_surveys = models.Survey.objects.all()
+        all_surveys = models.Survey.objects.all()
 
-    # Get all responses for teacher's surveys
-    responses = models.SurveyHistory.objects.filter(
-        survey__in=teacher_surveys
-    ).select_related('survey', 'student', 'student__user').order_by('-submitted_at')
+    # Base queryset - all responses
+    responses = models.SurveyHistory.objects.select_related(
+        'student', 'student__class_section', 'survey'
+    ).all()
 
-    # 🔹 SEARCH by student name or survey title
+    # Get filter parameters
     search_query = request.GET.get('q', '').strip()
-    if search_query:
-        responses = responses.filter(
-            Q(student__firstname__icontains=search_query) |
-            Q(student__lastname__icontains=search_query) |
-            Q(survey__title__icontains=search_query)
-        )
-
-    # 🔹 FILTER by survey
-    survey_filter = request.GET.get('survey', '')
-    if survey_filter:
-        responses = responses.filter(survey_id=survey_filter)
-
-    # 🔹 FILTER by date range
+    selected_survey = request.GET.get('survey', '')
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
-    if date_from:
+    # Apply search filter - IMPROVED TO HANDLE FULL NAMES
+    if search_query:
+        from django.db.models import Q
+
+        # Split search query by spaces
+        search_terms = search_query.split()
+
+        if len(search_terms) == 1:
+            # Single word - search in firstname, lastname, or survey title
+            term = search_terms[0]
+            responses = responses.filter(
+                Q(student__firstname__icontains=term) |
+                Q(student__lastname__icontains=term) |
+                Q(survey__title__icontains=term)
+            )
+        else:
+            # Multiple words - assume first name + last name
+            # Search for combinations
+            query = Q()
+
+            for i in range(len(search_terms)):
+                for j in range(i + 1, len(search_terms) + 1):
+                    first_part = ' '.join(search_terms[i:j])
+                    remaining = ' '.join(search_terms[:i] + search_terms[j:])
+
+                    # Try firstname + lastname
+                    query |= (
+                            Q(student__firstname__icontains=first_part) &
+                            Q(student__lastname__icontains=remaining)
+                    )
+
+                    # Try lastname + firstname
+                    query |= (
+                            Q(student__lastname__icontains=first_part) &
+                            Q(student__firstname__icontains=remaining)
+                    )
+
+            # Also search each word individually as fallback
+            for term in search_terms:
+                query |= Q(student__firstname__icontains=term)
+                query |= Q(student__lastname__icontains=term)
+                query |= Q(survey__title__icontains=term)
+
+            responses = responses.filter(query).distinct()
+
+    # Apply survey filter
+    if selected_survey:
         try:
-            from_date = datetime.strptime(date_from, '%Y-%m-%d').date()
-            responses = responses.filter(submitted_at__date__gte=from_date)
+            survey_id = int(selected_survey)
+            responses = responses.filter(survey_id=survey_id)
+        except ValueError:
+            pass
+
+    # Apply date filters
+    if date_from:
+        from datetime import datetime
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            responses = responses.filter(submitted_at__date__gte=date_from_obj)
         except ValueError:
             pass
 
     if date_to:
+        from datetime import datetime
         try:
-            to_date = datetime.strptime(date_to, '%Y-%m-%d').date()
-            responses = responses.filter(submitted_at__date__lte=to_date)
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            responses = responses.filter(submitted_at__date__lte=date_to_obj)
         except ValueError:
             pass
 
-    # 🔹 PAGINATION (10 per page)
+    # Order by most recent
+    responses = responses.order_by('-submitted_at')
+
+    # Pagination
     from django.core.paginator import Paginator
-    paginator = Paginator(responses, 10)
+    paginator = Paginator(responses, 10)  # 10 responses per page
     page_number = request.GET.get('page', 1)
-    page_obj = paginator.get_page(page_number)
+    responses_page = paginator.get_page(page_number)
 
     context = {
-        'responses': page_obj,
-        'all_surveys': teacher_surveys.order_by('title'),
+        'responses': responses_page,
+        'all_surveys': all_surveys,
         'search_query': search_query,
-        'selected_survey': survey_filter,
+        'selected_survey': selected_survey,
         'date_from': date_from,
         'date_to': date_to,
     }

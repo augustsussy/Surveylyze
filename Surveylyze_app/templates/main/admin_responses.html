@@ -75,105 +75,117 @@
           </div>
 
           <!-- Search & Filter Form -->
-          <div class="filter-card">
-            <form method="get" id="filterForm">
-              <div class="row g-3">
-                <!-- Search -->
-                <div class="col-md-4">
-                  <label class="form-label">
-                    <i class="bi bi-search"></i> Search
-                  </label>
-                  <input
-                    type="text"
-                    name="q"
-                    class="form-control"
-                    placeholder="Student or survey name..."
-                    value="{{ search_query }}"
-                  >
-                </div>
+<div class="filter-card">
+  <form method="get" id="filterForm">
+    <div class="row g-3 align-items-end">
+      <!-- Search with Button -->
+      <div class="col-md-3">
+        <label class="form-label">
+          <i class="bi bi-search"></i> Search
+        </label>
+        <div class="input-group">
+          <input
+            type="text"
+            name="q"
+            class="form-control search-input"
+            placeholder="Student or survey..."
+            value="{{ search_query }}"
+          >
+          <button class="btn btn-search" type="submit" title="Search">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
 
-                <!-- Filter by Survey -->
-                <div class="col-md-4">
-                  <label class="form-label">
-                    <i class="bi bi-file-earmark-text"></i> Survey
-                  </label>
-                  <select name="survey" class="form-select">
-                    <option value="">All Surveys</option>
-                    {% for survey in all_surveys %}
-                      <option value="{{ survey.survey_id }}"
-                        {% if selected_survey == survey.survey_id|stringformat:"s" %}selected{% endif %}>
-                        {{ survey.title }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
+      <!-- Filter by Survey -->
+      <div class="col-md-3">
+        <label class="form-label">
+          <i class="bi bi-file-earmark-text"></i> Survey
+        </label>
+        <select name="survey" class="form-select">
+          <option value="">All Surveys</option>
+          {% for survey in all_surveys %}
+            <option value="{{ survey.survey_id }}"
+              {% if selected_survey == survey.survey_id|stringformat:"s" %}selected{% endif %}>
+              {{ survey.title }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
 
-                <!-- Date From -->
-                <div class="col-md-2">
-                  <label class="form-label">
-                    <i class="bi bi-calendar"></i> From
-                  </label>
-                  <input
-                    type="date"
-                    name="date_from"
-                    class="form-control"
-                    value="{{ date_from }}"
-                  >
-                </div>
+      <!-- Date From -->
+      <div class="col-md-2">
+        <label class="form-label">
+          <i class="bi bi-calendar"></i> From
+        </label>
+        <div class="date-input-wrapper">
+          <input
+            type="date"
+            name="date_from"
+            class="form-control"
+            value="{{ date_from }}"
+          >
+        </div>
+      </div>
 
-                <!-- Date To -->
-                <div class="col-md-2">
-                  <label class="form-label">To</label>
-                  <input
-                    type="date"
-                    name="date_to"
-                    class="form-control"
-                    value="{{ date_to }}"
-                  >
-                </div>
-              </div>
+      <!-- Date To -->
+      <div class="col-md-2">
+        <label class="form-label">To</label>
+        <div class="date-input-wrapper">
+          <input
+            type="date"
+            name="date_to"
+            class="form-control"
+            value="{{ date_to }}"
+          >
+        </div>
+      </div>
 
-              <div class="mt-3 d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                  <i class="bi bi-funnel"></i> Apply Filters
-                </button>
-                <a href="{% url 'admin_responses' %}" class="btn-outline-secondary">
-                  <i class="bi bi-x-circle"></i> Clear
-                </a>
-              </div>
-            </form>
+      <!-- Buttons Column -->
+      <div class="col-md-2">
+        <div class="d-flex flex-column gap-2">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-funnel"></i> Filter
+          </button>
+          <a href="{% url 'admin_responses' %}" class="btn-outline-secondary w-100 text-center">
+            <i class="bi bi-x-circle"></i> Clear
+          </a>
+        </div>
+      </div>
+    </div>
 
-            <!-- Active Filters Display -->
-            {% if search_query or selected_survey or date_from or date_to %}
-              <div class="mt-3">
-                <small class="text-muted">Active filters:</small><br>
-                {% if search_query %}
-                  <span class="filter-badge">
-                    Search: "{{ search_query }}"
-                    <i class="bi bi-x" onclick="clearFilter('q')"></i>
-                  </span>
-                {% endif %}
-                {% if selected_survey %}
-                  <span class="filter-badge">
-                    Survey filter active
-                    <i class="bi bi-x" onclick="clearFilter('survey')"></i>
-                  </span>
-                {% endif %}
-                {% if date_from %}
-                  <span class="filter-badge">
-                    From: {{ date_from }}
-                    <i class="bi bi-x" onclick="clearFilter('date_from')"></i>
-                  </span>
-                {% endif %}
-                {% if date_to %}
-                  <span class="filter-badge">
-                    To: {{ date_to }}
-                    <i class="bi bi-x" onclick="clearFilter('date_to')"></i>
-                  </span>
-                {% endif %}
-              </div>
-            {% endif %}
-          </div>
+    <!-- Active Filters Display -->
+    {% if search_query or selected_survey or date_from or date_to %}
+      <div class="mt-3">
+        <small class="text-muted">Active filters:</small><br>
+        {% if search_query %}
+          <span class="filter-badge">
+            Search: "{{ search_query }}"
+            <i class="bi bi-x" onclick="clearFilter('q')"></i>
+          </span>
+        {% endif %}
+        {% if selected_survey %}
+          <span class="filter-badge">
+            Survey filter active
+            <i class="bi bi-x" onclick="clearFilter('survey')"></i>
+          </span>
+        {% endif %}
+        {% if date_from %}
+          <span class="filter-badge">
+            From: {{ date_from }}
+            <i class="bi bi-x" onclick="clearFilter('date_from')"></i>
+          </span>
+        {% endif %}
+        {% if date_to %}
+          <span class="filter-badge">
+            To: {{ date_to }}
+            <i class="bi bi-x" onclick="clearFilter('date_to')"></i>
+          </span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </form>
+</div>
 
           <!-- Responses Table -->
           <div class="response-table">

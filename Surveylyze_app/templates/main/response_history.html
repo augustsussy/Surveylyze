@@ -6,27 +6,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Survey Response - {{ history.survey.title }}</title>
 
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="{% static 'main/css/response_history.css' %}">
-
-  <!-- Debugging: Check if CSS loads -->
-  <style>
-    /* Fallback styling if external CSS doesn't load */
-    body.test-fallback {
-      background: linear-gradient(135deg, #e1caff 0%, #e3d0f5 100%);
-    }
-  </style>
+  <!-- Custom CSS with cache buster -->
+  <link rel="stylesheet" href="{% static 'main/css/response_history.css' %}?v=3">
 </head>
-<body class="test-fallback">
+<body>
   <div class="container">
     <div class="response-card">
-      <!-- Header -->
       <div class="card-header">
         {% if user.is_staff or user.is_superuser %}
           <a href="{% url 'admin_responses' %}" class="back-btn">
@@ -40,9 +29,7 @@
         <h1 class="survey-title">{{ history.survey.title }}</h1>
       </div>
 
-      <!-- Body -->
       <div class="card-body">
-        <!-- Submission Date -->
         <div class="submission-info">
           <div class="date">
             <i class="bi bi-calendar-check"></i>
@@ -50,7 +37,6 @@
           </div>
         </div>
 
-        <!-- Info Table -->
         <div class="info-table">
           <div class="info-row">
             <div class="info-label">
@@ -84,7 +70,6 @@
           </div>
         </div>
 
-        <!-- Responses -->
         <div class="responses-section">
           <h2 class="section-title">
             <i class="bi bi-chat-left-text"></i> Responses
@@ -97,13 +82,11 @@
                   Q{{ ans.question.order_number }}. {{ ans.question.question }}
                 </div>
 
-                {# SHORT ANSWER #}
                 {% if ans.question.question_type == "short_answer" %}
                   <div class="answer-content">
                     {{ ans.shortanswer_text|default:"No answer provided" }}
                   </div>
 
-                {# LIKERT #}
                 {% elif ans.question.question_type == "likert" or ans.question.question_type == "likert_scale" %}
                   <div class="likert-stars">
                     {% for i in "12345" %}
@@ -114,7 +97,6 @@
                     {% endif %}
                   </div>
 
-                {# MCQ #}
                 {% elif ans.question.question_type == "mcq" %}
                   <div class="mcq-answer">
                     <div class="mcq-dot"></div>
@@ -131,7 +113,6 @@
                     </div>
                   </div>
 
-                {# Fallback #}
                 {% else %}
                   <div class="answer-content">
                     {{ ans.shortanswer_text|default:ans.choice_id|default:ans.likert_value|default:"No answer" }}
@@ -149,7 +130,5 @@
       </div>
     </div>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
