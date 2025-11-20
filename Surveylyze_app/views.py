@@ -158,9 +158,11 @@ def analytics_admin(request):
     # Get the teacher's surveys
     try:
         teacher = request.user.teacher_profile
-        all_surveys = models.Survey.objects.filter(teacher=teacher)
-    except:
-        all_surveys = models.Survey.objects.all()
+    except models.Teacher.DoesNotExist:
+        messages.error(request, "Teacher profile not found. Please contact administrator.")
+        return redirect('login')
+
+    all_surveys = models.Survey.objects.filter(teacher=teacher)
 
     # ==========================================
     # FILTER BY SELECTED SURVEY
@@ -360,6 +362,7 @@ def surveybuilder(request):
     }
     return render(request, template, context)
 
+
 def survey_builder(request):
     if not request.user.is_staff and not request.user.is_superuser:
         messages.error(request, "You don't have access to the survey builder.")
@@ -367,16 +370,73 @@ def survey_builder(request):
 
     sections = models.ClassSection.objects.all().order_by("year_level", "class_name")
 
+    # Check if we're editing an existing survey
+    edit_survey_id = request.GET.get('edit')
+    edit_survey = None
+    survey_data = None
+
+    if edit_survey_id:
+        try:
+            edit_survey = models.Survey.objects.get(pk=edit_survey_id)
+
+            # Check if this teacher owns the survey
+            try:
+                teacher = request.user.teacher_profile
+                if edit_survey.teacher != teacher and not request.user.is_superuser:
+                    messages.error(request, "You don't have permission to edit this survey.")
+                    return redirect("my_surveys")
+            except:
+                pass
+
+            # Get all questions with their options
+            questions = edit_survey.questions.all().order_by('order_number')
+            questions_data = []
+
+            for q in questions:
+                question_dict = {
+                    'question_id': q.question_id,
+                    'order_number': q.order_number,
+                    'question': q.question,
+                    'question_type': q.question_type,
+                }
+
+                # If MCQ, get options
+                if q.question_type == 'mcq':
+                    options = list(q.options.all().values_list('option_text', flat=True))
+                    question_dict['options'] = options
+
+                questions_data.append(question_dict)
+
+            # Get assigned section
+            assignment = models.SurveyAssignment.objects.filter(survey=edit_survey).first()
+            assigned_section = assignment.class_section.class_id if assignment else None
+
+            survey_data = {
+                'survey_id': edit_survey.survey_id,
+                'title': edit_survey.title,
+                'description': edit_survey.description or '',
+                'due_date': edit_survey.due_date.strftime('%Y-%m-%d') if edit_survey.due_date else '',
+                'status': edit_survey.status,
+                'assigned_section': assigned_section,
+                'questions': questions_data
+            }
+
+        except models.Survey.DoesNotExist:
+            messages.error(request, "Survey not found.")
+            return redirect("my_surveys")
+
     if request.method == "POST":
+        # Check if we're updating or creating
+        survey_id = request.POST.get('survey_id')
+
         title = (request.POST.get("title") or "").strip()
         description = (request.POST.get("description") or "").strip() or None
         due_raw = request.POST.get("dueDate")
         section_id = request.POST.get("assignTo")
-        action = request.POST.get("action")  # "draft" or "publish"
+        action = request.POST.get("action")
 
         status = "published" if action == "publish" else "draft"
 
-        # parse due date
         due_date = None
         if due_raw:
             try:
@@ -385,22 +445,48 @@ def survey_builder(request):
                 messages.error(request, "Invalid due date format.")
                 return redirect("survey_builder")
 
-        # teacher linked to this user
         try:
             teacher = request.user.teacher_profile
         except Exception:
             teacher = get_object_or_404(models.Teacher, user=request.user)
 
-        # create survey
-        survey = models.Survey.objects.create(
-            teacher=teacher,
-            title=title,
-            description=description,
-            status=status,
-            due_date=due_date,
-        )
+        # UPDATE existing survey
+        if survey_id:
+            try:
+                survey = models.Survey.objects.get(pk=survey_id)
 
-        # 🔹 link survey → section
+                # Verify ownership
+                if survey.teacher != teacher and not request.user.is_superuser:
+                    messages.error(request, "You don't have permission to edit this survey.")
+                    return redirect("my_surveys")
+
+                # Update survey fields
+                survey.title = title
+                survey.description = description
+                survey.status = status
+                survey.due_date = due_date
+                survey.save()
+
+                # Delete old questions
+                survey.questions.all().delete()
+
+                # Delete old assignments
+                models.SurveyAssignment.objects.filter(survey=survey).delete()
+
+            except models.Survey.DoesNotExist:
+                messages.error(request, "Survey not found.")
+                return redirect("my_surveys")
+        else:
+            # CREATE new survey
+            survey = models.Survey.objects.create(
+                teacher=teacher,
+                title=title,
+                description=description,
+                status=status,
+                due_date=due_date,
+            )
+
+        # Link survey to section
         if section_id:
             section = get_object_or_404(models.ClassSection, pk=section_id)
             models.SurveyAssignment.objects.create(
@@ -408,7 +494,7 @@ def survey_builder(request):
                 class_section=section,
             )
 
-        # 🔹 save questions from the hidden "questions" JSON
+        # Save questions
         questions_json = request.POST.get("questions", "[]")
 
         try:
@@ -425,15 +511,13 @@ def survey_builder(request):
             order = q.get("order_number") or 1
             options = q.get("options") or []
 
-            # create the Question first
             question_obj = models.Question.objects.create(
                 survey=survey,
                 question=text,
-                question_type=q_type,   # "mcq", "likert", "short_answer"
+                question_type=q_type,
                 order_number=order,
             )
 
-            # 🔹 if MCQ, create Option rows
             if q_type == "mcq":
                 for opt_text in options:
                     opt_text = (opt_text or "").strip()
@@ -444,19 +528,22 @@ def survey_builder(request):
                         option_text=opt_text,
                     )
 
-        messages.success(
-            request,
-            f'Survey “{survey.title}” saved as {survey.status} with {len(questions)} question(s).'
-        )
+        if survey_id:
+            messages.success(request, f'Survey "{survey.title}" updated successfully!')
+        else:
+            messages.success(request,
+                             f'Survey "{survey.title}" saved as {survey.status} with {len(questions)} question(s).')
 
         if status == "published":
             return redirect("analytics_admin")
-        
-        return redirect("survey_builder")
+
+        return redirect("my_surveys")
 
     return render(request, "main/surveyBuilder_admin.html", {
         "sections": sections,
         "title": "Survey Builder",
+        "edit_survey": edit_survey,
+        "survey_data": json.dumps(survey_data) if survey_data else None,
     })
 
 from django.db.models import Q
@@ -658,11 +745,14 @@ def admin_responses(request):
         return redirect('dashboard')
 
     # Get all surveys for the teacher
+    # Get the teacher's surveys ONLY
     try:
         teacher = request.user.teacher_profile
-        all_surveys = models.Survey.objects.filter(teacher=teacher)
-    except:
-        all_surveys = models.Survey.objects.all()
+    except models.Teacher.DoesNotExist:
+        messages.error(request, "Teacher profile not found. Please contact administrator.")
+        return redirect('login')
+
+    all_surveys = models.Survey.objects.filter(teacher=teacher)
 
     # Base queryset - all responses
     responses = models.SurveyHistory.objects.select_related(
@@ -764,3 +854,54 @@ def admin_responses(request):
     }
 
     return render(request, 'main/admin_responses.html', context)
+
+
+@login_required
+def my_surveys(request):
+    """Display all surveys created by the teacher"""
+
+    # Ensure user is staff/teacher
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "You don't have permission to access analytics.")
+        return redirect('dashboard')
+
+    # Verify teacher profile exists
+    try:
+        teacher = request.user.teacher_profile
+    except models.Teacher.DoesNotExist:
+        messages.error(request, "No teacher profile found. Please contact administrator.")
+        return redirect('login')
+
+    # Get surveys for THIS teacher only
+    all_surveys = models.Survey.objects.filter(teacher=teacher)
+    context = {
+        'surveys': all_surveys,
+    }
+
+    return render(request, 'main/my_surveys.html', context)
+
+
+@login_required
+def delete_survey(request, survey_id):
+    """Delete a survey"""
+
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, "You don't have permission to delete surveys.")
+        return redirect('dashboard')
+
+    survey = get_object_or_404(models.Survey, pk=survey_id)
+
+    # Check if the survey belongs to this teacher
+    try:
+        teacher = request.user.teacher_profile
+        if survey.teacher != teacher and not request.user.is_superuser:
+            messages.error(request, "You don't have permission to delete this survey.")
+            return redirect('my_surveys')
+    except:
+        pass
+
+    survey_title = survey.title
+    survey.delete()
+
+    messages.success(request, f'Survey "{survey_title}" has been deleted successfully.')
+    return redirect('my_surveys')

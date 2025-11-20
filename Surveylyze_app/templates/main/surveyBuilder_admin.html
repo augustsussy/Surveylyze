@@ -14,6 +14,10 @@
   <link rel="stylesheet" href="{% static 'main/css/surveyBuilder_admin.css' %}">
 </head>
 <body>
+<!-- Hidden survey data for editing -->
+  {% if survey_data %}
+    <div id="surveyData" style="display: none;">{{ survey_data|safe }}</div>
+  {% endif %}
   <div class="shell">
  <div class="topbar">
   <div class="actions">
@@ -76,12 +80,24 @@
 
       <!-- Settings -->
       <aside class="panel settings">
-        <div class="breadcrumbs">Dashboard • Survey • Builder</div>
+        <div class="breadcrumbs">
+  Dashboard • Survey •
+  {% if edit_survey %}
+    Edit: {{ edit_survey.title }}
+  {% else %}
+    Builder
+  {% endif %}
+</div>
         <h3>Survey Settings</h3>
 
         <!-- You can wrap in a form if you plan to POST -->
 <form id="surveySettingsForm" method="post" action="{% url 'survey_builder' %}">
   {% csrf_token %}
+
+  <!-- Hidden input for editing -->
+  {% if edit_survey %}
+    <input type="hidden" name="survey_id" value="{{ edit_survey.survey_id }}">
+  {% endif %}
 
   <!-- only this hidden input is needed -->
   <input type="hidden" id="questionsData" name="questions">
