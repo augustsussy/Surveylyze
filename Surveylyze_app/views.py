@@ -641,3 +641,42 @@ def response_history(request, history_id):
         "history": history,
         "answers": answers,
     })
+
+@login_required
+def my_surveys(request):
+    # get the Teacher tied to this user
+    try:
+        teacher = request.user.teacher_profile
+    except Exception:
+        teacher = get_object_or_404(models.Teacher, user=request.user)
+
+    surveys = models.Survey.objects.filter(
+        teacher=teacher
+    ).order_by("-created_date")
+
+    return render(request, "main/my_surveys.html", {
+        "surveys": surveys,
+        "teacher": teacher,
+    })
+
+@login_required
+def delete_survey(request, survey_id):
+    if request.method != "POST":
+        return redirect("my_surveys")
+
+    # ensure this survey belongs to the logged-in teacher
+    try:
+        teacher = request.user.teacher_profile
+    except Exception:
+        teacher = get_object_or_404(models.Teacher, user=request.user)
+
+    survey = get_object_or_404(models.Survey, pk=survey_id, teacher=teacher)
+    title = survey.title
+    survey.delete()
+    messages.success(request, f'Survey "{title}" has been deleted.')
+    return redirect("my_surveys")
+
+@login_required
+def edit_survey(request, survey_id):
+    # later you can load the survey into the builder
+    return redirect(f"/surveybuilder/?survey_id={survey_id}")

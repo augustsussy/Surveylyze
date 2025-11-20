@@ -14,5 +14,8 @@ path('analyticsadmin/', views.analytics_admin, name='analytics_admin'),
 path('surveybuilder/', views.surveybuilder, name='surveybuilder'),
     path("survey-builder/", views.survey_builder, name="survey_builder"),
 path("survey/<int:survey_id>/", views.take_survey, name="take_survey"),
-    path("response-history/<int:history_id>/", views.response_history, name='response_history')
+    path("response-history/<int:history_id>/", views.response_history, name='response_history'),
+    path("my-surveys/", views.my_surveys, name="my_surveys"),
+path("my-surveys/<int:survey_id>/edit/", views.edit_survey, name="edit_survey"),
+path("my-surveys/<int:survey_id>/delete/", views.delete_survey, name="delete_survey"),
 ]

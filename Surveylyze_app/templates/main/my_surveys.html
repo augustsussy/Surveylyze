@@ -1,10 +1,73 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Title</title>
+  <title>My Surveys</title>
+  <link rel="stylesheet" href="{% static 'main/css/dashboard.css' %}">
+  {# ^ reuse the same CSS that styles student survey cards #}
 </head>
 <body>
+  <section class="dashboard">
+    <main class="content" style="width:100%;max-width:1100px;margin:2rem auto;">
+      <h2 class="title">My Surveys</h2>
 
+      {% if surveys %}
+        <div class="survey-card-list">
+          {% for survey in surveys %}
+            <div class="survey-card">
+              <div class="survey-card-main">
+                <h4 class="survey-card-title">{{ survey.title }}</h4>
+
+                <p class="survey-card-row">
+                  <span class="label">Status:</span>
+                  {% if survey.status == "closed" %}
+                    <span class="status-badge status-closed">Closed</span>
+                  {% elif survey.status == "draft" %}
+                    <span class="status-badge status-draft">Draft</span>
+                  {% else %}
+                    <span class="status-badge status-open">Open</span>
+                  {% endif %}
+                </p>
+
+                <p class="survey-card-row">
+                  <span class="label">Deadline:</span>
+                  {% if survey.due_date %}
+                    <span class="deadline-date">
+                      {{ survey.due_date|date:"F d, Y" }}
+                    </span>
+                  {% else %}
+                    <span class="deadline-date no-deadline">No deadline</span>
+                  {% endif %}
+                </p>
+              </div>
+
+              <div class="survey-card-actions" style="display:flex;flex-direction:column;gap:.4rem;">
+                <!-- Edit button -->
+                <a href="{% url 'edit_survey' survey.survey_id %}"
+                   class="btn-take-survey"
+                   style="text-align:center;">
+                  Edit
+                </a>
+
+                <!-- Delete button (POST form) -->
+                <form method="post"
+                      action="{% url 'delete_survey' survey.survey_id %}">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="btn-take-survey disabled"
+                          style="background:#ff4d4f;border:none;">
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p>No surveys created yet.</p>
+      {% endif %}
+    </main>
+  </section>
 </body>
 </html>
