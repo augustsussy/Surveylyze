@@ -4,118 +4,129 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Survey Response</title>
-  <link rel="stylesheet" href="{% static 'main/css/response_history.css' %}">
+  <title>Survey Response - {{ history.survey.title }}</title>
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS with cache buster -->
+  <link rel="stylesheet" href="{% static 'main/css/response_history.css' %}?v=3">
 </head>
 <body>
-  <div class="centered-card">
-    <div class="card-header">
-      <a href="{% url 'dashboard' %}" class="back-btn">&lt; Back to Dashboard</a>
-    </div>
-
-    <!-- ✅ Survey title -->
-    <div class="section-title">
-      {{ history.survey.title }}
-    </div>
-
-    <div class="card-section" style="padding-top: .5rem;">
-
-      <!-- ✅ Date of submission -->
-      <div style="font-size:.98rem; color:#555; margin-bottom: .7rem;">
-        Date of Submission:
-        {{ history.submitted_at|date:"F d, Y h:i A" }}
+  <div class="container">
+    <div class="response-card">
+      <div class="card-header">
+        {% if user.is_staff or user.is_superuser %}
+          <a href="{% url 'admin_responses' %}" class="back-btn">
+            <i class="bi bi-arrow-left"></i> Back to Responses
+          </a>
+        {% else %}
+          <a href="{% url 'dashboard' %}" class="back-btn">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+          </a>
+        {% endif %}
+        <h1 class="survey-title">{{ history.survey.title }}</h1>
       </div>
 
-      <!-- ✅ Survey info table -->
-      <table class="survey-info-table">
-        <tr>
-          <th style="width:55%;">Survey Info</th>
-          <th>Completed</th>
-        </tr>
-        <tr class="table-row-divider">
-          <td>Submitted By</td>
-          <td>
-            {{ history.student.firstname }} {{ history.student.lastname }}
-          </td>
-        </tr>
-        <tr class="table-row-divider">
-          <td>Submitted On</td>
-          <td>
-            {{ history.submitted_at|date:"F d, Y h:i A" }}
-          </td>
-        </tr>
-        <tr>
-          <td>Duration</td>
-          <td>
-            {% if history.duration %}
-              {{ history.duration }} seconds
-            {% else %}
-              Not recorded
-            {% endif %}
-          </td>
-        </tr>
-      </table>
+      <div class="card-body">
+        <div class="submission-info">
+          <div class="date">
+            <i class="bi bi-calendar-check"></i>
+            <strong>Submitted:</strong> {{ history.submitted_at|date:"F d, Y - h:i A" }}
+          </div>
+        </div>
 
-      <!-- ✅ Responses -->
-      <div class="response-section">
-        <div class="section-title" style="margin-bottom:1rem;">Response</div>
+        <div class="info-table">
+          <div class="info-row">
+            <div class="info-label">
+              <i class="bi bi-person"></i> Submitted By
+            </div>
+            <div class="info-value">
+              {{ history.student.firstname }} {{ history.student.lastname }}
+            </div>
+          </div>
 
-        {% if answers %}
-          {% for ans in answers %}
-            <div class="survey-question">
-              <!-- Question text -->
-              <label class="question-label">
-                Q{{ ans.question.order_number }}.
-                {{ ans.question.question }}
-              </label>
+          <div class="info-row">
+            <div class="info-label">
+              <i class="bi bi-calendar3"></i> Submitted On
+            </div>
+            <div class="info-value">
+              {{ history.submitted_at|date:"F d, Y - h:i A" }}
+            </div>
+          </div>
 
-              {# SHORT ANSWER #}
-              {% if ans.question.question_type == "short_answer" %}
-                <input class="text-response"
-                       type="text"
-                       value="{{ ans.shortanswer_text }}"
-                       disabled />
-
-              {# LIKERT #}
-              {% elif ans.question.question_type == "likert" or ans.question.question_type == "likert_scale" %}
-                <div class="likert-row">
-                  {% for i in "12345" %}
-                    <span class="likert-dot{% if forloop.counter <= ans.likert_value %} selected{% endif %}"></span>
-                  {% endfor %}
-                  {% if ans.likert_value %}
-                    <span class="likert-value-text">{{ ans.likert_value }} / 5</span>
-                  {% endif %}
-                </div>
-
-              {# MCQ #}
-              {% elif ans.question.question_type == "mcq" %}
-                <div class="text-response" style="border:none; background:#f0eafa;">
-                  {% if ans.choice_id %}
-                    {# Find and show the matching option's text #}
-                    {% for opt in ans.question.options.all %}
-                      {% if opt.option_id == ans.choice_id %}
-                        {{ opt.option_text }}
-                      {% endif %}
-                    {% endfor %}
-                  {% else %}
-                    (no option selected)
-                  {% endif %}
-                </div>
-
-              {# Fallback #}
+          <div class="info-row">
+            <div class="info-label">
+              <i class="bi bi-clock"></i> Duration
+            </div>
+            <div class="info-value">
+              {% if history.duration %}
+                {{ history.duration }} seconds
               {% else %}
-                <input class="text-response"
-                       type="text"
-                       value="{{ ans.shortanswer_text|default:ans.choice_id|default:ans.likert_value }}"
-                       disabled />
+                Not recorded
               {% endif %}
             </div>
-          {% endfor %}
-        {% else %}
-          <p>No responses found for this attempt.</p>
-        {% endif %}
+          </div>
+        </div>
 
+        <div class="responses-section">
+          <h2 class="section-title">
+            <i class="bi bi-chat-left-text"></i> Responses
+          </h2>
+
+          {% if answers %}
+            {% for ans in answers %}
+              <div class="question-block">
+                <div class="question-label">
+                  Q{{ ans.question.order_number }}. {{ ans.question.question }}
+                </div>
+
+                {% if ans.question.question_type == "short_answer" %}
+                  <div class="answer-content">
+                    {{ ans.shortanswer_text|default:"No answer provided" }}
+                  </div>
+
+                {% elif ans.question.question_type == "likert" or ans.question.question_type == "likert_scale" %}
+                  <div class="likert-stars">
+                    {% for i in "12345" %}
+                      <i class="bi bi-star-fill likert-star {% if forloop.counter <= ans.likert_value %}filled{% endif %}"></i>
+                    {% endfor %}
+                    {% if ans.likert_value %}
+                      <span class="likert-value">{{ ans.likert_value }} / 5</span>
+                    {% endif %}
+                  </div>
+
+                {% elif ans.question.question_type == "mcq" %}
+                  <div class="mcq-answer">
+                    <div class="mcq-dot"></div>
+                    <div>
+                      {% if ans.choice_id %}
+                        {% for opt in ans.question.options.all %}
+                          {% if opt.option_id == ans.choice_id %}
+                            {{ opt.option_text }}
+                          {% endif %}
+                        {% endfor %}
+                      {% else %}
+                        No option selected
+                      {% endif %}
+                    </div>
+                  </div>
+
+                {% else %}
+                  <div class="answer-content">
+                    {{ ans.shortanswer_text|default:ans.choice_id|default:ans.likert_value|default:"No answer" }}
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <i class="bi bi-inbox"></i>
+              <p>No responses found for this submission.</p>
+            </div>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>

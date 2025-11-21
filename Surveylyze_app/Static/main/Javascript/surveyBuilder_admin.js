@@ -1,7 +1,7 @@
 /* ===============================
    CONFIG / ROUTES
 ================================= */
-const DASHBOARD_URL = 'analytics_admin.html'; // Back to Dashboard target (can be replaced by Django URL)
+const DASHBOARD_URL = '/analytics-admin/'; // Fixed URL
 
 /* ===============================
    DOM ELEMENTS
@@ -78,11 +78,11 @@ const labelFor = t =>
 /* ===============================
    RENDER QUESTIONS
 ================================= */
-/* ===============================
-   RENDER QUESTIONS
-================================= */
 function render() {
-  if (!canvas) return;
+  if (!canvas) {
+    console.error("Canvas element not found!");
+    return;
+  }
 
   canvas.innerHTML = '';
 
@@ -91,7 +91,7 @@ function render() {
     card.className = 'q-card';
     card.draggable = true;
     card.dataset.id = q.id;
-    card.dataset.type = q.type; // important for saving later
+    card.dataset.type = q.type;
 
     /* ----- Drag events ----- */
     card.addEventListener('dragstart', e => {
@@ -110,7 +110,6 @@ function render() {
       if (g) g.remove();
       syncOrderFromDOM();
       render();
-      persist();
     });
 
     card.addEventListener('dragover', e => {
@@ -126,7 +125,6 @@ function render() {
     card.addEventListener('drop', () => {
       syncOrderFromDOM();
       render();
-      persist();
     });
 
     /* ----- Title ----- */
@@ -143,7 +141,6 @@ function render() {
 
     prompt.addEventListener('input', e => {
       q.text = e.target.value;
-      persist();
     });
     card.appendChild(prompt);
 
@@ -154,36 +151,28 @@ function render() {
         row.className = 'mc-opt';
         row.innerHTML = `
           <span class="mc-dot"></span>
-
           <div class="input" contenteditable="true">${escapeHTML(opt)}</div>
-
           <div class="mc-actions">
             <button class="mc-btn add-opt" title="Add Option">+</button>
-            <button class="mc-btn del-opt" title="Remove Option">–</button>
+            <button class="mc-btn del-opt" title="Remove Option">−</button>
           </div>
         `;
 
-        // Edit option text
         const editable = row.querySelector('[contenteditable]');
         editable.addEventListener('input', e => {
           q.options[idx] = e.target.textContent;
-          persist();
         });
 
-        // Add option below this one
         const addBtn = row.querySelector('.add-opt');
         addBtn.onclick = () => {
           q.options.splice(idx + 1, 0, 'New Option');
-          persist();
           render();
         };
 
-        // Remove this option (keep at least one)
         const delBtn = row.querySelector('.del-opt');
         delBtn.onclick = () => {
           if (q.options.length > 1) {
             q.options.splice(idx, 1);
-            persist();
             render();
           }
         };
@@ -195,8 +184,7 @@ function render() {
     if (q.type === 'likert') {
       const stars = document.createElement('div');
       stars.className = 'star-row';
-      stars.innerHTML =
-        '<i class="bi bi-star-fill star"></i>'.repeat(5);
+      stars.innerHTML = '<i class="bi bi-star-fill star"></i>'.repeat(5);
       card.appendChild(stars);
     }
 
@@ -247,13 +235,11 @@ function add(type, index = null) {
     state.questions.splice(index, 0, newQ);
   }
 
-  persist();
   render();
 }
 
 function removeQ(id) {
   state.questions = state.questions.filter(q => q.id !== id);
-  persist();
   render();
 }
 
@@ -264,7 +250,6 @@ function duplicate(id) {
   const copy = JSON.parse(JSON.stringify(state.questions[i]));
   copy.id = uid();
   state.questions.splice(i + 1, 0, copy);
-  persist();
   render();
 }
 
@@ -276,52 +261,7 @@ function syncOrderFromDOM() {
   state.questions.sort(
     (a, b) => ids.indexOf(a.id) - ids.indexOf(b.id)
   );
-  persist();
 }
-
-/* ===============================
-   LOCAL STORAGE
-================================= */
-function persist() {
-  localStorage.setItem(
-    'purple_survey_builder',
-    JSON.stringify(state)
-  );
-}
-
-function restore() {
-  // 1) If server sent a builder state (edit mode), use that
-  if (loadInitialStateFromServer()) {
-    return;
-  }
-
-  // 2) Otherwise fall back to localStorage (new survey / drafts)
-  const raw = localStorage.getItem('purple_survey_builder');
-  if (raw) {
-    const s = JSON.parse(raw);
-    Object.assign(state.meta, s.meta || {});
-    state.questions = s.questions || [];
-  } else {
-    // starter questions for a brand new survey
-    state.questions = [
-      TEMPLATES.short_answer(),
-      TEMPLATES.likert(),
-      TEMPLATES.multiple_choice()
-    ];
-  }
-
-  // restore meta UI
-  if (assignSelect) {
-    assignSelect.value = state.meta.assignTo || '';
-  }
-  if (dueDateInput) {
-    dueDateInput.value = state.meta.dueDate || '';
-  }
-  if (statusToggle) {
-    statusToggle.checked = !!state.meta.published;
-  }
-}
-
 
 /* ===============================
    TOOLBOX (click + drag)
@@ -410,7 +350,6 @@ const openModal  = () => modal && modal.classList.add('show');
 const closeModal = () => modal && modal.classList.remove('show');
 
 if (btnNew) btnNew.onclick = openModal;
-
 if (modalCancel) modalCancel.onclick = closeModal;
 
 if (modal) {
@@ -427,8 +366,26 @@ document.addEventListener('keydown', e => {
 
 if (modalConfirm) {
   modalConfirm.onclick = () => {
-    localStorage.removeItem('purple_survey_builder');
-    location.reload();
+    // Clear everything and reload
+    state.questions = [
+      TEMPLATES.short_answer(),
+      TEMPLATES.likert(),
+      TEMPLATES.multiple_choice()
+    ];
+    document.getElementById('surveyTitle').value = '';
+    document.getElementById('surveyDescription').value = '';
+    document.getElementById('assignTo').value = '';
+    document.getElementById('dueDate').value = '';
+    document.getElementById('statusToggle').checked = false;
+
+    // Remove survey_id if editing
+    const surveyIdInput = document.querySelector('input[name="survey_id"]');
+    if (surveyIdInput) {
+      surveyIdInput.remove();
+    }
+
+    render();
+    closeModal();
   };
 }
 
@@ -451,16 +408,6 @@ if (topbar) {
 /* ===============================
    TOP BUTTONS
 ================================= */
-if (btnSave) {
-  // note: button is type="submit", so form will submit as well
-  btnSave.onclick = () => {
-    persist();
-    toast('Draft saved');
-  };
-}
-
-// Do NOT override btnPublish.onclick so form submit works normally
-
 if (btnExport) {
   btnExport.onclick = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], {
@@ -468,7 +415,7 @@ if (btnExport) {
     });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = (state.meta.title || 'survey') + '.json';
+    a.download = (document.getElementById('surveyTitle').value || 'survey') + '.json';
     a.click();
   };
 }
@@ -489,21 +436,18 @@ if (btnBack) {
 if (assignSelect) {
   assignSelect.addEventListener('input', e => {
     state.meta.assignTo = e.target.value;
-    persist();
   });
 }
 
 if (dueDateInput) {
   dueDateInput.addEventListener('input', e => {
     state.meta.dueDate = e.target.value;
-    persist();
   });
 }
 
 if (statusToggle) {
   statusToggle.addEventListener('change', e => {
     state.meta.published = e.target.checked;
-    persist();
   });
 }
 
@@ -520,24 +464,8 @@ if (dateIcon && dueDateInput) {
 }
 
 /* ===============================
-   TOAST + PREVIEW HELPERS
+   PREVIEW HELPER
 ================================= */
-function toast(msg) {
-  const t = document.createElement('div');
-  t.textContent = msg;
-  t.style.position = 'fixed';
-  t.style.bottom = '16px';
-  t.style.right = '16px';
-  t.style.background = 'rgba(0,0,0,.75)';
-  t.style.color = '#fff';
-  t.style.padding = '10px 12px';
-  t.style.borderRadius = '10px';
-  t.style.fontSize = '.9rem';
-  t.style.zIndex = '9999';
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 1600);
-}
-
 function preview() {
   const html = `
   <!doctype html><html><head><meta charset="utf-8">
@@ -567,7 +495,7 @@ function preview() {
           ? Array.from({ length: 5 })
               .map(
                 () =>
-                  `<span class="bi bi-star" style="font-size:22px;color:#c7b4e6;margin-right:6px"></span>`
+                  `<span style="font-size:22px;color:#c7b4e6;margin-right:6px">★</span>`
               )
               .join('')
           : q.type === 'multiple_choice'
@@ -609,62 +537,73 @@ function escapeHTML(str = '') {
 
 /* ===============================
    SAVE QUESTIONS TO HIDDEN INPUT
-   (for Django)
-================================= */
-/* ===============================
-   SAVE QUESTIONS TO HIDDEN INPUT
-   (for Django)
 ================================= */
 if (settingsForm) {
-  settingsForm.addEventListener('submit', () => {
-    const cards = document.querySelectorAll('#canvas .q-card');
+  settingsForm.addEventListener('submit', (e) => {
+    console.log("Form submitting...");
+
+    syncOrderFromDOM();
+
     const questionsPayload = [];
+    const cards = document.querySelectorAll('#canvas .q-card');
 
     cards.forEach((card, index) => {
       const id = card.dataset.id;
+      const type = card.dataset.type;
+
       const fromState = state.questions.find(q => q.id === id);
-
-      const rawType =
-        card.dataset.type ||
-        (fromState && fromState.type) ||
-        'short_answer';
-
-      let questionType = 'short_answer';
-      if (rawType === 'multiple_choice' || rawType === 'mcq') {
-        questionType = 'mcq';
-      } else if (rawType === 'likert') {
-        questionType = 'likert';
+      if (!fromState) {
+        console.warn("Question not found in state:", id);
+        return;
       }
 
-      // Get main question text
-      const input =
-        card.querySelector('.input') ||
-        card.querySelector("input[type='text']") ||
-        card.querySelector('textarea');
+      // Map question type
+      let questionType = 'short_answer';
+      if (type === 'multiple_choice' || type === 'mcq') {
+        questionType = 'mcq';
+      } else if (type === 'likert' || type === 'likert_scale') {
+        questionType = 'likert';
+      } else if (type === 'short_answer') {
+        questionType = 'short_answer';
+      }
 
-      const text = (input && input.value.trim()) || '';
-      if (!text) return; // skip empty questions
+      // Get question text
+      const input = card.querySelector('.input');
+      const text = (input && input.value.trim()) || fromState.text || '';
 
-      // 🔹 Collect MCQ options if needed
-      let options = [];
+      if (!text) {
+        console.warn("Empty question text, skipping");
+        return;
+      }
+
+      const questionObj = {
+        order_number: index + 1,
+        question: text,
+        question_type: questionType,
+      };
+
+      // Get MCQ options
       if (questionType === 'mcq') {
-        const optionEls = card.querySelectorAll(".mc-opt [contenteditable]");
+        const options = [];
+        const optionEls = card.querySelectorAll('.mc-opt [contenteditable]');
+
         optionEls.forEach(optEl => {
           const val = optEl.textContent.trim();
           if (val) options.push(val);
         });
+
+        if (options.length === 0 && fromState.options) {
+          questionObj.options = fromState.options;
+        } else {
+          questionObj.options = options;
+        }
       }
 
-      // Push question payload
-      questionsPayload.push({
-        order_number: index + 1,
-        question: text,
-        question_type: questionType,
-        options: options  // <-- IMPORTANT FOR MCQ
-      });
+      questionsPayload.push(questionObj);
     });
 
-    // Put JSON into hidden input
+    console.log("Questions to save:", questionsPayload);
+
     let hidden = document.getElementById('questionsData');
     if (!hidden) {
       hidden = document.createElement('input');
@@ -675,132 +614,105 @@ if (settingsForm) {
     }
 
     hidden.value = JSON.stringify(questionsPayload);
+    console.log("Hidden input value:", hidden.value);
   });
 }
 
-const builderDataEl = document.getElementById('builder-data');
-let EDIT_MODE = false;
-let PRELOADED_STATE = null;
-let EDIT_SURVEY_ID = null;
+/* ===============================
+   INIT - Load existing survey if editing
+================================= */
+console.log("🚀 Initializing Survey Builder...");
 
-if (builderDataEl) {
-  const rawState = builderDataEl.dataset.state;
-  const editingFlag = builderDataEl.dataset.editing === "true";
-  const surveyId = builderDataEl.dataset.surveyId || "";
+// Check if we're editing a survey
+const surveyDataEl = document.getElementById('surveyData');
 
-  EDIT_MODE = editingFlag;
-  EDIT_SURVEY_ID = surveyId;
-
-  if (rawState) {
-    try {
-      PRELOADED_STATE = JSON.parse(rawState);
-    } catch (err) {
-      console.error("Failed to parse preloaded builder state", err);
-    }
-  }
-}
-
-function loadInitialStateFromServer() {
-  const el = document.getElementById('builder-state');
-  if (!el) return false;
-
-  const raw = el.dataset.state;
-  if (!raw) return false;
+if (surveyDataEl) {
+  const surveyDataJSON = surveyDataEl.textContent.trim();
+  console.log("📋 Found survey data element");
 
   try {
-    const parsed = JSON.parse(raw);
+    const surveyData = JSON.parse(surveyDataJSON);
 
-    // meta
-    if (parsed.meta) {
-      Object.assign(state.meta, parsed.meta);
-    }
+    if (surveyData && surveyData.survey_id) {
+      console.log("✏️ EDITING MODE - Loading survey:", surveyData.title);
 
-    // questions
-    if (Array.isArray(parsed.questions)) {
-      state.questions = parsed.questions;
-    }
+      // Populate form fields
+      if (surveyData.title) {
+        document.getElementById('surveyTitle').value = surveyData.title;
+      }
+      if (surveyData.description) {
+        document.getElementById('surveyDescription').value = surveyData.description;
+      }
+      if (surveyData.assigned_section) {
+        document.getElementById('assignTo').value = surveyData.assigned_section;
+      }
+      if (surveyData.due_date) {
+        document.getElementById('dueDate').value = surveyData.due_date;
+      }
+      if (surveyData.status === 'published') {
+        document.getElementById('statusToggle').checked = true;
+      }
 
-    // also prefill the form fields from meta
-    const titleInput = document.getElementById('surveyTitle');
-    const descInput  = document.getElementById('surveyDescription');
+      // Load questions
+      if (surveyData.questions && surveyData.questions.length > 0) {
+        console.log(`📝 Loading ${surveyData.questions.length} questions`);
 
-    if (titleInput && parsed.meta && parsed.meta.title) {
-      titleInput.value = parsed.meta.title;
-    }
-    if (descInput && parsed.meta && parsed.meta.description) {
-      descInput.value = parsed.meta.description;
-    }
-    if (assignSelect && parsed.meta && parsed.meta.assignTo) {
-      assignSelect.value = parsed.meta.assignTo;
-    }
-    if (dueDateInput && parsed.meta && parsed.meta.dueDate) {
-      dueDateInput.value = parsed.meta.dueDate;
-    }
-    if (statusToggle && parsed.meta) {
-      statusToggle.checked = !!parsed.meta.published;
-    }
+        state.questions = surveyData.questions.map((q, idx) => {
+          // Normalize type
+          let normalizedType = q.question_type;
+          if (q.question_type === 'mcq') {
+            normalizedType = 'multiple_choice';
+          } else if (q.question_type === 'likert_scale') {
+            normalizedType = 'likert';
+          }
 
-    return true;
+          const newQ = {
+            id: uid(),
+            type: normalizedType,
+            text: q.question,
+          };
+
+          // Load MCQ options
+          if (normalizedType === 'multiple_choice') {
+            if (q.options && q.options.length > 0) {
+              newQ.options = q.options;
+            } else {
+              newQ.options = ['Option 1', 'Option 2', 'Option 3'];
+            }
+          }
+
+          return newQ;
+        });
+
+        console.log("✅ Questions loaded into state:", state.questions.length);
+
+        // Render questions
+        setTimeout(() => {
+          render();
+          console.log("✅ Canvas rendered with questions");
+        }, 100);
+      } else {
+        console.log("⚠️ No questions found in survey data");
+        render();
+      }
+    }
   } catch (e) {
-    console.error('Error parsing builder state from server:', e);
-    return false;
-  }
-}
-
-
-/* ===============================
-   INIT
-================================= */
-
-if (EDIT_MODE && PRELOADED_STATE) {
-  // Use server data when editing
-  const meta = PRELOADED_STATE.meta || {};
-  const qlist = PRELOADED_STATE.questions || [];
-
-  state.meta.assignTo  = meta.assignTo || "";
-  state.meta.dueDate   = meta.dueDate || "";
-  state.meta.published = !!meta.published;
-
-  state.questions = qlist.map(q => ({
-    id: q.id || uid(),
-    type: q.type,
-    text: q.text || "",
-    options: q.options || []
-  }));
-
-  // Fill form fields
-  const titleInput = document.getElementById("surveyTitle");
-  const descInput  = document.getElementById("surveyDescription");
-
-  if (titleInput && meta.title) {
-    titleInput.value = meta.title;
-  }
-  if (descInput && typeof meta.description !== "undefined") {
-    descInput.value = meta.description;
-  }
-  if (assignSelect && meta.assignTo) {
-    assignSelect.value = meta.assignTo;
-  }
-  if (dueDateInput && meta.dueDate) {
-    dueDateInput.value = meta.dueDate;
-  }
-  if (statusToggle) {
-    statusToggle.checked = !!meta.published;
-  }
-
-  // also ensure hidden survey_id field is set
-  const surveyIdField = document.getElementById("surveyIdField");
-  if (surveyIdField && EDIT_SURVEY_ID) {
-    surveyIdField.value = EDIT_SURVEY_ID;
+    console.error("❌ Error parsing survey data:", e);
+    // Load default questions
+    state.questions = [
+      TEMPLATES.short_answer(),
+      TEMPLATES.likert(),
+      TEMPLATES.multiple_choice()
+    ];
+    render();
   }
 } else {
-  // normal "new survey" behavior
-  // (you can keep/adjust your existing restore logic here)
-  // localStorage.removeItem('purple_survey_builder'); // optional
-  restore();
+  console.log("➕ NEW SURVEY MODE");
+  // New survey - load starter questions
+  state.questions = [
+    TEMPLATES.short_answer(),
+    TEMPLATES.likert(),
+    TEMPLATES.multiple_choice()
+  ];
+  render();
 }
-
-restore();
-render();
-
-
