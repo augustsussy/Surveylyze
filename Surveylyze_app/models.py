@@ -15,6 +15,12 @@ class Teacher(models.Model):
     middlename = models.CharField(max_length=50, blank=True, null=True)
     email_address = models.EmailField(unique=True)
 
+    profile_picture = models.ImageField(
+        upload_to='profile_pics/',
+        blank=True,
+        null=True
+    )
+
 
 
 class Student(models.Model):

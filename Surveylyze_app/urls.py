@@ -19,4 +19,5 @@ urlpatterns = [
     path('my-surveys/', views.my_surveys, name='my_surveys'),
     path('delete-survey/<int:survey_id>/', views.delete_survey, name='delete_survey'),
     path('admin-responses/', views.admin_responses, name='admin_responses'),
+    # path('account/settings/', views.account_settings, name='account_settings'),
 ]
