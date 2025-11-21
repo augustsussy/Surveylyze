@@ -14,46 +14,44 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="{% static 'main/css/admin_responses.css' %}">
+  <link rel="stylesheet" href="{% static 'main/Css/admin_responses.css' %}">
 </head>
 <body>
   <div class="app-wrapper">
     <div class="row g-3">
       <!-- Sidebar -->
-      <div class="col-12 col-lg-3">
-        <div class="sidebar d-flex flex-column h-100 justify-content-between">
-          <div>
-            <div class="profile mb-2 d-flex align-items-center">
-              <div class="avatar me-2"></div>
-              <div>
-                <div>{{ user.first_name }} {{ user.last_name }}</div>
-                <div class="role text-muted small">
-                  {% if user.is_superuser %}Administrator{% else %}Teacher{% endif %}
-                </div>
-              </div>
-              <div class="ms-auto d-flex gap-2 align-items-center">
-                <i class="bi bi-bell"></i>
-                <i class="bi bi-gear"></i>
-              </div>
-            </div>
-
-            <nav class="nav flex-column mt-2">
-  <a class="nav-link" href="{% url 'analytics_admin' %}">Analytics Dashboard</a>
-  <a class="nav-link" href="{% url 'my_surveys' %}">My Surveys</a>
-  <a class="nav-link active" href="{% url 'admin_responses' %}">Responses</a>
-</nav>
-          </div>
-
-          <!-- Logout Button -->
-          <form action="{% url 'logout' %}" method="post" class="mt-3">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
-              <i class="bi bi-box-arrow-right"></i>
-              Logout
-            </button>
-          </form>
+<div class="col-12 col-lg-3">
+  <div class="sidebar">
+    <div class="profile mb-2">
+      <div class="avatar me-2"></div>
+      <div>
+        <div>{{ user.first_name }} {{ user.last_name }}</div>
+        <div class="role text-muted small">
+          {% if user.is_superuser %}Administrator{% else %}Teacher{% endif %}
         </div>
       </div>
+      <div class="ms-auto d-flex gap-2 align-items-center">
+        <i class="bi bi-bell"></i>
+        <i class="bi bi-gear"></i>
+      </div>
+    </div>
+
+    <nav class="nav flex-column mt-2">
+      <a class="nav-link" href="{% url 'analytics_admin' %}">Analytics Dashboard</a>
+      <a class="nav-link" href="{% url 'survey_builder' %}">Survey Builder</a>
+      <a class="nav-link" href="{% url 'my_surveys' %}">My Surveys</a>
+      <a class="nav-link active" href="{% url 'admin_responses' %}">Responses</a>
+    </nav>
+
+    <!-- Logout Button -->
+    <form action="{% url 'logout' %}" method="post" class="mt-3">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger w-100">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </button>
+    </form>
+  </div>
+</div>
 
       <!-- Main Content -->
       <div class="col-12 col-lg-9">

@@ -31,7 +31,15 @@ body {
   border-radius: 20px;
   box-shadow: var(--shadow);
   padding: 16px;
-  height: 100%;
+  height: fit-content;
+
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .profile {
@@ -62,12 +70,37 @@ body {
   color: var(--text);
   border-radius: 12px;
   padding: 10px 12px;
+  text-decoration: none;
+  display: block;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
 }
 
 .nav-link.active,
 .nav-link:hover {
   background: var(--purple-200);
   color: var(--purple-600);
+}
+
+/* Logout Button */
+.btn-outline-danger {
+  border: 2px solid #dc3545;
+  background: white;
+  color: #dc3545;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-outline-danger:hover {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
 }
 
 /* Main panel */
