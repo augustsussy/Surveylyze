@@ -11,18 +11,36 @@
 </head>
 <body>
   <section class="dashboard">
-    <!-- Hover Sidebar -->
+    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="profile-card">
-        <img src="{% static 'main/images/profile.png' %}" alt="Profile" class="avatar">
-        <div class="profile-info">
-          <h4>{{ user.first_name }} {{ user.last_name }}</h4>
-          <p>ID: {{ user.id }}</p>
-          <p>Section: {{ user.student_profile.class_section.class_name }}</p>
+        <!-- Avatar: student profile picture with fallback -->
+        <div class="avatar-wrapper">
+          {% if student.profile_picture %}
+            <img src="{{ student.profile_picture.url }}" alt="Profile" class="avatar">
+          {% else %}
+            <img src="{% static 'main/images/profile.png' %}" alt="Profile" class="avatar">
+          {% endif %}
         </div>
+
+        <!-- Student Info -->
+        <div class="profile-info">
+          <h4>
+            {{ student.firstname }}
+            {% if student.middlename %} {{ student.middlename }} {% endif %}
+            {{ student.lastname }}
+          </h4>
+
+          <p>ID: {{ student.student_id }}</p>
+          <p>Section: {{ student.class_section.class_name }}</p>
+        </div>
+
+        <!-- Icons -->
         <div class="icons">
           <i data-lucide="bell"></i>
-          <i data-lucide="settings"></i>
+          <a href="{% url 'student_settings' %}">
+            <i data-lucide="settings"></i>
+          </a>
         </div>
       </div>
 
@@ -31,16 +49,18 @@
           <i data-lucide="bar-chart-3"></i>
           <span>Response History</span>
         </a>
+
         <a href="#" class="menu-item">
           <i data-lucide="clipboard-list"></i>
           <span>Assigned Surveys</span>
         </a>
-        <a href="#" class="menu-item">
+
+        <a href="{% url 'student_settings' %}" class="menu-item">
           <i data-lucide="user-cog"></i>
           <span>Settings</span>
         </a>
 
-        <!-- ✅ Logout Button -->
+        <!-- Logout -->
         <form action="{% url 'logout' %}" method="post" class="logout-form">
           {% csrf_token %}
           <button type="submit" class="menu-item logout-btn">
@@ -56,7 +76,7 @@
       <h2 class="title">STUDENT DASHBOARD</h2>
       <div class="dashboard-grid">
 
-        <!-- ✅ RESPONSE HISTORY -->
+        <!-- RESPONSE HISTORY -->
         <div class="card history">
           <h3>RESPONSE HISTORY</h3>
 
@@ -103,11 +123,11 @@
                 {% for history in responses %}
                   <div class="table-row">
                     <div class="col">
-  <a href="{% url 'response_history' history.history_id %}"
-     class="response-link">
-    {{ history.survey.title }}
-  </a>
-</div>
+                      <a href="{% url 'response_history' history.history_id %}"
+                         class="response-link">
+                        {{ history.survey.title }}
+                      </a>
+                    </div>
                     <div class="col">
                       {{ history.submitted_at|date:"F d, Y" }}
                     </div>
@@ -127,7 +147,7 @@
           </div>
         </div>
 
-        <!-- ✅ ASSIGNED SURVEYS (card style) -->
+        <!-- ASSIGNED SURVEYS -->
         <div class="card assigned-surveys">
           <h3>ASSIGNED SURVEY</h3>
 
@@ -143,7 +163,6 @@
                       {% if survey.status == "closed" %}
                         <span class="status-badge status-closed">Closed</span>
                       {% else %}
-                        {# students only see published/closed, so published = Open #}
                         <span class="status-badge status-open">Open</span>
                       {% endif %}
                     </p>

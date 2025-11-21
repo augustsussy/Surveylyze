@@ -1,0 +1,171 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Account Settings</title>
+    <link rel="stylesheet" href="{% static 'main/css/teacher_settings.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="ts-body">
+
+<div class="ts-page">
+    <!-- LEFT SIDEBAR CARD -->
+    <aside class="ts-sidebar">
+        <div class="ts-profile-card">
+            <div class="ts-profile-header">
+                <div class="ts-avatar">
+                    {% if teacher.profile_picture %}
+                        <img src="{{ teacher.profile_picture.url }}" alt="Profile picture">
+                    {% else %}
+                        <span class="ts-avatar-initials">
+                            {{ teacher.firstname|first }}{{ teacher.lastname|first }}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="ts-profile-text">
+                    <div class="ts-name">
+                        {{ teacher.firstname }} {{ teacher.lastname }}
+                    </div>
+                    <div class="ts-role">
+                        Administrator
+                    </div>
+                </div>
+            </div>
+
+            <div class="ts-profile-menu">
+                <div class="ts-menu-item ts-menu-item-active">
+                    Account Settings
+                </div>
+                <a href="{% url 'analytics_admin' %}" class="ts-menu-item">
+                    Analytics Dashboard
+                </a>
+                <a href="{% url 'survey_builder' %}" class="ts-menu-item">
+                    Survey Builder
+                </a>
+                <a href="{% url 'my_surveys' %}" class="ts-menu-item">
+                    My Surveys
+                </a>
+                <a href="{% url 'admin_responses' %}" class="ts-menu-item">
+                    Responses
+                </a>
+            </div>
+
+            <a href="{% url 'logout' %}" class="ts-logout-btn">
+                Logout
+            </a>
+        </div>
+    </aside>
+
+    <!-- RIGHT CONTENT -->
+    <main class="ts-main">
+        <h1 class="ts-page-title">Account Settings</h1>
+
+        {% if messages %}
+            <div class="ts-messages">
+                {% for message in messages %}
+                    <div class="ts-message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- PROFILE FORM CARD -->
+        <section class="ts-card">
+            <div class="ts-card-header">
+                <div>
+                    <h2 class="ts-card-title">Profile Information</h2>
+                    <p class="ts-card-subtitle">Update your name, email and profile picture.</p>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="ts-form">
+                {% csrf_token %}
+                {{ teacher_form.non_field_errors }}
+
+                <div class="ts-form-grid">
+                    <div class="ts-form-group">
+                        <label>First name</label>
+                        {{ teacher_form.firstname }}
+                        {{ teacher_form.firstname.errors }}
+                    </div>
+
+                    <div class="ts-form-group">
+                        <label>Middle name</label>
+                        {{ teacher_form.middlename }}
+                        {{ teacher_form.middlename.errors }}
+                    </div>
+
+                    <div class="ts-form-group">
+                        <label>Last name</label>
+                        {{ teacher_form.lastname }}
+                        {{ teacher_form.lastname.errors }}
+                    </div>
+
+                    <div class="ts-form-group">
+                        <label>Email address</label>
+                        {{ teacher_form.email_address }}
+                        {{ teacher_form.email_address.errors }}
+                    </div>
+
+                    <div class="ts-form-group ts-form-group-full">
+                        <label>Profile picture</label>
+                        {{ teacher_form.profile_picture }}
+                        {{ teacher_form.profile_picture.errors }}
+                        <p class="ts-help-text">Recommended: square image, at least 200×200.</p>
+                    </div>
+                </div>
+
+                <div class="ts-card-footer">
+                    <button type="submit" name="save_profile" class="ts-primary-btn">
+                        Save changes
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- PASSWORD CARD -->
+        <section class="ts-card">
+            <div class="ts-card-header">
+                <div>
+                    <h2 class="ts-card-title">Password</h2>
+                    <p class="ts-card-subtitle">Change your password to keep your account secure.</p>
+                </div>
+            </div>
+
+            <form method="post" class="ts-form">
+                {% csrf_token %}
+                {{ password_form.non_field_errors }}
+
+                <div class="ts-form-grid ts-form-grid-half">
+                    <div class="ts-form-group ts-form-group-full">
+                        <label>Old password</label>
+                        {{ password_form.old_password }}
+                        {{ password_form.old_password.errors }}
+                    </div>
+                    <div class="ts-form-group ts-form-group-full">
+                        <label>New password</label>
+                        {{ password_form.new_password1 }}
+                        {{ password_form.new_password1.errors }}
+                    </div>
+                    <div class="ts-form-group ts-form-group-full">
+                        <label>Confirm new password</label>
+                        {{ password_form.new_password2 }}
+                        {{ password_form.new_password2.errors }}
+                    </div>
+                </div>
+
+                <div class="ts-card-footer">
+                    <button type="submit" name="change_password" class="ts-primary-btn ts-outline-btn">
+                        Change password
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+</div>
+
+</body>
+</html>

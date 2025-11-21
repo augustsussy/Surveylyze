@@ -54,12 +54,7 @@ body {
   font-weight: 600;
 }
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple), var(--purple-600));
-}
+
 
 .role {
   font-weight: 600;
@@ -314,4 +309,19 @@ body {
   .btn-delete {
     flex: 1;
   }
+}
+
+.avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #e2caff;
+    flex-shrink: 0;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }

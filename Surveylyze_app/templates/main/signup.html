@@ -12,28 +12,39 @@
   <section class="auth-container">
     <div class="form-box">
       <h2>Signup</h2>
-      <form method="POST" action="{% url 'savesignup' %}">
-        {% csrf_token %}
-        <div class="name-group">
-          <input type="text" name="firstname" placeholder="First Name" required>
-          <input type="text" name="lastname" placeholder="Last Name" required>
-        </div>
+    {% if messages %}
+  <div class="error-messages">
+    {% for message in messages %}
+      <p class="error-text">{{ message }}</p>
+    {% endfor %}
+  </div>
+{% endif %}
 
-        <input type="email" name="email" placeholder="Email" required>
-        <input type="password" name="password1" placeholder="Password" required>
-        <input type="password" name="password2" placeholder="Repeat Password" required>
+     <form method="POST" action="{% url 'savesignup' %}">
+  {% csrf_token %}
 
-<select name="section" id="section" required>
-  <option value="">Select Section</option>
-  {% for section in sections %}
-    <option value="{{ section.class_id }}">
-      {{ section.class_name }} (Year {{ section.year_level }})
-    </option>
-  {% endfor %}
-</select>
 
-        <button type="submit" class="btn">Signup</button>
-      </form>
+  <div class="name-group">
+    <input type="text" name="firstname" placeholder="First Name" required>
+    <input type="text" name="lastname" placeholder="Last Name" required>
+  </div>
+
+  <input type="email" name="email" placeholder="Email" required>
+  <input type="password" name="password1" placeholder="Password" required>
+  <input type="password" name="password2" placeholder="Repeat Password" required>
+
+  <select name="section" id="section" required>
+    <option value="">Select Section</option>
+    {% for section in sections %}
+      <option value="{{ section.class_id }}">
+        {{ section.class_name }} (Year {{ section.year_level }})
+      </option>
+    {% endfor %}
+  </select>
+
+  <button type="submit" class="btn">Signup</button>
+</form>
+
       <p class="redirect">Already have an account? <a href="{% url 'login' %}">Login</a></p>
     </div>
   </section>

@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- If any errors, block submission and show them ---
     if (errors.length > 0) {
       e.preventDefault();
-      alert(errors.join("\n"));
       return;
     }
   });

@@ -17,11 +17,13 @@
         {% csrf_token %}
 
 {% if messages %}
-  {% for message in messages %}
-    {% if message.tags == "error" %}
-      <p style="color:red; margin:.5rem 0">{{ message.message }}</p>
-    {% endif %}
-  {% endfor %}
+  <div class="error-messages">
+    {% for message in messages %}
+      {% if message.tags == "error" %}
+        <p class="error-text">{{ message }}</p>
+      {% endif %}
+    {% endfor %}
+  </div>
 {% endif %}
 
 

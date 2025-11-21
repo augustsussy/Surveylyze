@@ -29,8 +29,10 @@ class Student(models.Model):
     lastname = models.CharField(max_length=50, name='lastname')
     firstname = models.CharField(max_length=50, name='firstname')
     middlename = models.CharField(max_length=50, blank=True, null=True, name='middlename')
+    profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     class_section = models.ForeignKey(
         "ClassSection", on_delete=models.PROTECT, related_name="students"
+
     )
 
 class ClassSection(models.Model):

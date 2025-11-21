@@ -20,6 +20,13 @@ from django.contrib.auth.decorators import login_required
 import json
 import re
 from collections import Counter
+from .models import Teacher
+from .forms import TeacherUpdateForm
+from django.contrib.auth.forms import PasswordChangeForm
+from .models import Student
+from .forms import StudentUpdateForm
+
+
 
 from . import models
 from . import models
@@ -79,7 +86,7 @@ def survey(request):
 
 def saveSignUp(request):
     if request.method != "POST":
-        return redirect("signup")
+        return redirect("addStudentForm")
 
     # grab fields
     firstname = (request.POST.get("firstname") or "").strip()
@@ -95,7 +102,7 @@ def saveSignUp(request):
 
     if pw1 != pw2:
         messages.error(request, "Passwords do not match.")
-        return redirect("signup")
+        return redirect("addStudentForm")
 
     try:
         temp_user = User(username=email, email=email, first_name=firstname, last_name=lastname)
@@ -103,7 +110,7 @@ def saveSignUp(request):
     except ValidationError as e:
         for msg in e.messages:
             messages.error(request, msg)
-        return redirect("signup")
+        return redirect("addStudentForm")
 
     try:
         with transaction.atomic():
@@ -121,11 +128,20 @@ def saveSignUp(request):
                 lastname=lastname,
                 class_section=section,
             )
+
         messages.success(request, "Account created successfully! You can now log in.")
         return redirect(reverse("login"))
+
+
+    # ---------------------------
+    # FIXED ERROR MESSAGE HERE
+    # ---------------------------
     except Exception as e:
-        messages.error(request, f"Error creating account: {e}")
-        return redirect("signup")
+        if "UNIQUE constraint failed: auth_user.username" in str(e):
+            messages.error(request, "That email is already registered.")
+        else:
+            messages.error(request, "An unexpected error occurred. Please try again.")
+        return redirect("addStudentForm")
 
 
 def addStudentForm(request):
@@ -339,10 +355,13 @@ def analytics_admin(request):
     # ==========================================
     context = {
         'title': 'Analytics Dashboard',
+        'teacher': teacher,  # <-- add this line
+
         'all_surveys': all_surveys.order_by('-created_date'),
         'selected_survey_id': selected_survey_id,
         'selected_survey_id_int': selected_survey_id_int,
         'selected_survey': selected_survey,
+
         'metrics': json.dumps({
             'surveys_total': total_surveys,
             'submissions': total_submissions,
@@ -850,6 +869,7 @@ def admin_responses(request):
         'selected_survey': selected_survey,
         'date_from': date_from,
         'date_to': date_to,
+        'teacher': teacher,
     }
 
     return render(request, 'main/admin_responses.html', context)
@@ -875,6 +895,8 @@ def my_surveys(request):
     all_surveys = models.Survey.objects.filter(teacher=teacher)
     context = {
         'surveys': all_surveys,
+        'teacher': teacher,
+
     }
 
     return render(request, 'main/my_surveys.html', context)
@@ -904,3 +926,79 @@ def delete_survey(request, survey_id):
 
     messages.success(request, f'Survey "{survey_title}" has been deleted successfully.')
     return redirect('my_surveys')
+
+@login_required
+def teacher_settings(request):
+    # get the Teacher object for the logged-in user
+    teacher= get_object_or_404(Teacher, user=request.user)
+
+    if request.method == 'POST':
+        # Decide which form was submitted by button name
+        if 'save_profile' in request.POST:
+            teacher_form = TeacherUpdateForm(
+                request.POST,
+                request.FILES,
+                instance=teacher
+            )
+            if teacher_form.is_valid():
+                teacher_form.save()
+                messages.success(request, "Profile updated successfully.")
+                return redirect('teacher_settings')
+
+        elif 'change_password' in request.POST:
+            password_form = PasswordChangeForm(request.user, request.POST)
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)  # keep user logged in
+                messages.success(request, "Password changed successfully.")
+                return redirect('teacher_settings')
+    else:
+        teacher_form = TeacherUpdateForm(instance=teacher)
+        password_form = PasswordChangeForm(request.user)
+
+    context = {
+        'teacher_form': teacher_form,
+        'password_form': password_form,
+        'teacher': teacher,
+    }
+    return render(request, 'main/teacher_settings.html', context)
+
+@login_required
+def student_settings(request):
+    student = get_object_or_404(Student, user=request.user)
+
+    if request.method == "POST":
+        # profile info (name + profile picture)
+        if "save_profile" in request.POST:
+            student_form = StudentUpdateForm(
+                request.POST,
+                request.FILES,          # 👈 IMPORTANT for profile_picture
+                instance=student,
+            )
+            password_form = PasswordChangeForm(request.user)  # still show empty
+
+            if student_form.is_valid():
+                student_form.save()
+                messages.success(request, "Profile updated successfully.")
+                return redirect("student_settings")
+
+        # password change
+        elif "change_password" in request.POST:
+            student_form = StudentUpdateForm(instance=student)
+            password_form = PasswordChangeForm(request.user, request.POST)
+
+            if password_form.is_valid():
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password changed successfully.")
+                return redirect("student_settings")
+    else:
+        student_form = StudentUpdateForm(instance=student)
+        password_form = PasswordChangeForm(request.user)
+
+    context = {
+        "student": student,
+        "student_form": student_form,
+        "password_form": password_form,
+    }
+    return render(request, "main/student_settings.html", context)

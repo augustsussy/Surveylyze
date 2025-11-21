@@ -92,3 +92,32 @@ footer {
   font-weight: 700;
   font-size: 0.8rem;
 }
+
+.alert-box {
+    margin-bottom: 10px;
+}
+
+.alert {
+    background: #ffeded;
+    color: #b30000;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.error-messages {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background: #ffe5e5;       /* light red background */
+    border-left: 5px solid #ff4a4a;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.error-text {
+    color: #d40000 !important;  /* strong red */
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+}

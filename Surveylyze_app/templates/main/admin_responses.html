@@ -22,19 +22,31 @@
       <!-- Sidebar -->
 <div class="col-12 col-lg-3">
   <div class="sidebar">
-    <div class="profile mb-2">
-      <div class="avatar me-2"></div>
-      <div>
-        <div>{{ user.first_name }} {{ user.last_name }}</div>
-        <div class="role text-muted small">
-          {% if user.is_superuser %}Administrator{% else %}Teacher{% endif %}
-        </div>
-      </div>
-      <div class="ms-auto d-flex gap-2 align-items-center">
-        <i class="bi bi-bell"></i>
-        <i class="bi bi-gear"></i>
-      </div>
+<div class="profile mb-2">
+  <!-- Avatar -->
+  <div class="avatar me-2">
+    {% if teacher.profile_picture %}
+      <img src="{{ teacher.profile_picture.url }}" class="avatar-img" alt="">
+    {% endif %}
+  </div>
+
+  <!-- Name + Role -->
+  <div>
+    <div class="fw-semibold">{{ teacher.firstname }} {{ teacher.lastname }}</div>
+    <div class="role text-muted small">
+      {% if user.is_superuser %}Administrator{% else %}Teacher{% endif %}
     </div>
+  </div>
+
+  <!-- Icons -->
+  <div class="ms-auto d-flex gap-2 align-items-center">
+    <i class="bi bi-bell"></i>
+    <a href="{% url 'teacher_settings' %}">
+      <i class="bi bi-gear"></i>
+    </a>
+  </div>
+</div>
+
 
     <nav class="nav flex-column mt-2">
       <a class="nav-link" href="{% url 'analytics_admin' %}">Analytics Dashboard</a>

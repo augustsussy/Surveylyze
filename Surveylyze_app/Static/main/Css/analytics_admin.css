@@ -64,12 +64,7 @@ body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -app
   font-weight: 600;
 }
 
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple), var(--purple-600));
-}
+
 
 .role {
   font-weight: 600;
@@ -159,4 +154,19 @@ body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -app
 /* Responsive */
 @media (max-width: 1000px){
   .sidebar{margin-bottom:12px}
+}
+
+.avatar {
+    width: 48px;        /* or 40, 50, whatever you want */
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #e9d6ff;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
