@@ -754,10 +754,9 @@ def admin_responses(request):
 
     all_surveys = models.Survey.objects.filter(teacher=teacher)
 
-    # Base queryset - all responses
     responses = models.SurveyHistory.objects.select_related(
         'student', 'student__class_section', 'survey'
-    ).all()
+    ).filter(survey__in=all_surveys)
 
     # Get filter parameters
     search_query = request.GET.get('q', '').strip()
