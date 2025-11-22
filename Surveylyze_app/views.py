@@ -506,7 +506,7 @@ def survey_builder(request):
             )
 
         # Link survey to section
-        if section_id:
+        if status == "published" and section_id:
             section = get_object_or_404(models.ClassSection, pk=section_id)
             models.SurveyAssignment.objects.create(
                 survey=survey,

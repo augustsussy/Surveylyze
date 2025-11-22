@@ -59,41 +59,55 @@
           <div class="survey-step active">
             {% for question in questions %}
               <div class="question-block">
-                <label>{{ question.order_number }}. {{ question.question }}</label>
 
-                {# SHORT ANSWER -> text box #}
-                {% if question.question_type == "short_answer" %}
-                  <input
-                    type="text"
-                    name="q{{ question.question_id }}"
-                    placeholder="Type your answer"
-                  >
+                {# LIKERT -> star rating card #}
+                {% if question.question_type == "likert" or question.question_type == "likert_scale" %}
+                  <div class="rating-question">
+                    <div class="rating-header">
+                      <span class="rating-label">
+                        {{ question.order_number }}. {{ question.question }}
+                      </span>
+                      <span class="rating-score" id="score_q{{ question.question_id }}">0 / 5</span>
+                    </div>
 
-                {# MCQ -> dropdown from options #}
-                {% elif question.question_type == "mcq" %}
-                  <select name="q{{ question.question_id }}">
-                    <option value="">Select an option</option>
-                    {% for opt in question.options.all %}
-                      {# IMPORTANT: use option_id (your PK), not id #}
-                      <option value="{{ opt.option_id }}">{{ opt.option_text }}</option>
-                    {% empty %}
-                      <option disabled>No options defined</option>
-                    {% endfor %}
-                  </select>
-
-                {# LIKERT -> 1–5 stars #}
-                {% elif question.question_type == "likert" or question.question_type == "likert_scale" %}
-                  <div class="likert-stars">
-                    {% for i in "12345" %}
-                      <input
-                        type="radio"
-                        id="q{{ question.question_id }}_{{ forloop.counter }}"
-                        name="q{{ question.question_id }}"
-                        value="{{ forloop.counter }}"
-                      >
-                      <label for="q{{ question.question_id }}_{{ forloop.counter }}">★</label>
-                    {% endfor %}
+                    <div class="rating-card">
+                      <div class="star-rating" data-question-id="q{{ question.question_id }}">
+                        {% for i in "12345" %}
+                          <input
+                            type="radio"
+                            id="q{{ question.question_id }}_{{ forloop.counter }}"
+                            name="q{{ question.question_id }}"
+                            value="{{ forloop.counter }}"
+                          >
+                          <label for="q{{ question.question_id }}_{{ forloop.counter }}">★</label>
+                        {% endfor %}
+                      </div>
+                    </div>
                   </div>
+
+                {# SHORT ANSWER / MCQ use the normal layout #}
+                {% else %}
+                  <label>{{ question.order_number }}. {{ question.question }}</label>
+
+                  {# SHORT ANSWER -> text box #}
+                  {% if question.question_type == "short_answer" %}
+                    <input
+                      type="text"
+                      name="q{{ question.question_id }}"
+                      placeholder="Type your answer"
+                    >
+
+                  {# MCQ -> dropdown from options #}
+                  {% elif question.question_type == "mcq" %}
+                    <select name="q{{ question.question_id }}">
+                      <option value="">Select an option</option>
+                      {% for opt in question.options.all %}
+                        <option value="{{ opt.option_id }}">{{ opt.option_text }}</option>
+                      {% empty %}
+                        <option disabled>No options defined</option>
+                      {% endfor %}
+                    </select>
+                  {% endif %}
                 {% endif %}
               </div>
             {% empty %}
@@ -116,5 +130,26 @@
   </footer>
 
   <script src="{% static 'main/Javascript/survey.js' %}"></script>
+
+  <!-- Optional: live update for "x / 5" score text -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const starGroups = document.querySelectorAll('.star-rating');
+
+      starGroups.forEach(group => {
+        const radios = group.querySelectorAll('input[type="radio"]');
+        const qName = group.getAttribute('data-question-id');
+        const scoreEl = document.getElementById('score_' + qName.replace('q', ''));
+
+        radios.forEach(radio => {
+          radio.addEventListener('change', () => {
+            if (scoreEl) {
+              scoreEl.textContent = radio.value + ' / 5';
+            }
+          });
+        });
+      });
+    });
+  </script>
 </body>
 </html>
