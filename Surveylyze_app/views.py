@@ -601,12 +601,24 @@ def dashboard(request):
     # 🔹 Response history (only THIS student's attempts)
     responses = models.SurveyHistory.objects.filter(
         student=student
-    ).select_related("survey").order_by("-submitted_at")
+    ).select_related("survey")
+
+    # ✅ NEW: Handle search query
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        responses = responses.filter(survey__title__icontains=search_query)
+
+    # ✅ NEW: Handle ordering
+    order = request.GET.get('order', 'newest')
+    if order == 'oldest':
+        responses = responses.order_by('submitted_at')  # Oldest first
+    else:
+        responses = responses.order_by('-submitted_at')  # Newest first (default)
 
     return render(request, "main/dashboard.html", {
         "student": student,
-        "surveys": assigned_surveys,   # your template uses 'surveys' for the card
-        "responses": responses,        # your response history table
+        "surveys": assigned_surveys,
+        "responses": responses,
     })
 
 
