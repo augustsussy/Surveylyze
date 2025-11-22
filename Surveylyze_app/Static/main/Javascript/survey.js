@@ -17,44 +17,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (steps && steps.length > 0) {
     function updateSurvey() {
-      // show active step
+      // Show active step
       steps.forEach((step, i) => {
         step.classList.toggle("active", i === currentStep);
       });
 
-      // update tabs (if you add more later)
+      // Update tabs (future-proof)
       tabs.forEach((tab, i) => {
         tab.classList.toggle("active", i === currentStep);
       });
 
-      // progress bar
+      // Progress bar width
       if (progress) {
         progress.style.width = `${((currentStep + 1) / steps.length) * 100}%`;
       }
 
-      // 1/3, 2/3, etc
+      // Progress text
       if (progressText) {
         progressText.textContent = `${currentStep + 1}/${steps.length}`;
       }
 
-      // buttons
-      if (prevBtn) prevBtn.disabled = currentStep === 0;
+      // Buttons
+      if (prevBtn) {
+        prevBtn.textContent = currentStep === 0 ? "Back to Dashboard" : "Previous";
+      }
+
       if (nextBtn) {
         nextBtn.textContent =
           currentStep === steps.length - 1 ? "Submit" : "Next";
       }
     }
 
+    // NEXT BUTTON
     if (nextBtn) {
       nextBtn.addEventListener("click", (e) => {
-        // prevent default submit so we control when to submit
         e.preventDefault();
 
         if (currentStep < steps.length - 1) {
           currentStep++;
           updateSurvey();
         } else {
-          // last step: submit the form for real
           if (surveyForm) {
             surveyForm.submit();
           }
@@ -62,9 +64,21 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // UPDATED PREVIOUS BUTTON
     if (prevBtn) {
       prevBtn.addEventListener("click", (e) => {
         e.preventDefault();
+
+        // If first step → go back to dashboard
+        const dashboardUrl = prevBtn.dataset.backUrl;
+        if (currentStep === 0 || !steps || steps.length === 1) {
+          if (dashboardUrl) {
+            window.location.href = dashboardUrl;
+            return;
+          }
+        }
+
+        // Otherwise go back a step
         if (currentStep > 0) {
           currentStep--;
           updateSurvey();
@@ -72,6 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // TAB CLICKING
     if (tabs && tabs.length > 0) {
       tabs.forEach((tab, index) => {
         tab.addEventListener("click", (e) => {
@@ -86,31 +101,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -----------------------------
-  // STAR RATING (LIKERT) LOGIC
+  // STAR RATING (LIKERT)
   // -----------------------------
-  // HTML expectation:
-  // <div class="star-rating" data-question-id="q123">
-  //   <input ... name="q123" value="1"> ...
-  // </div>
-  // <span id="score_q123" class="rating-score">0 / 5</span>
   const starGroups = document.querySelectorAll(".star-rating");
 
   starGroups.forEach((group) => {
     const radios = group.querySelectorAll('input[type="radio"]');
-    const qKey = group.getAttribute("data-question-id"); // e.g. "q5"
-    const scoreEl = document.getElementById("score_" + qKey); // "score_q5"
+    const labels = group.querySelectorAll("label");
+    const qKey = group.getAttribute("data-question-id");
+    const scoreEl = document.getElementById("score_" + qKey);
+
+    function updateStars(value) {
+      const valNum = parseInt(value, 10) || 0;
+
+      labels.forEach((label) => {
+        const starVal = parseInt(label.dataset.value, 10);
+        label.classList.toggle("active", starVal <= valNum);
+      });
+
+      if (scoreEl) {
+        scoreEl.textContent = `${valNum} / 5`;
+      }
+    }
 
     radios.forEach((radio) => {
-      radio.addEventListener("change", () => {
-        if (scoreEl) {
-          scoreEl.textContent = `${radio.value} / 5`;
-        }
-      });
+      radio.addEventListener("change", () => updateStars(radio.value));
     });
+
+    const checked = group.querySelector('input[type="radio"]:checked');
+    if (checked) {
+      updateStars(checked.value);
+    }
   });
 
   // -----------------------------
-  // PROFILE DROPDOWN LOGIC
+  // PROFILE DROPDOWN
   // -----------------------------
   if (profileBtn && profilePanel) {
     profileBtn.addEventListener("click", (e) => {
@@ -119,10 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     window.addEventListener("click", (e) => {
-      if (
-        !profileBtn.contains(e.target) &&
-        !profilePanel.contains(e.target)
-      ) {
+      if (!profileBtn.contains(e.target) && !profilePanel.contains(e.target)) {
         profilePanel.classList.remove("show");
       }
     });

@@ -724,6 +724,7 @@ def take_survey(request, survey_id):
     return render(request, "main/survey.html", {
         "survey": survey,
         "questions": questions,
+        "student": student,
     })
 
 

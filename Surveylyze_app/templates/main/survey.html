@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{ survey.title }} | SURVEYLYZE</title>
+
   <link rel="stylesheet" href="{% static 'main/css/survey.css' %}">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
@@ -14,8 +15,13 @@
     <div class="brand">
       <h1>SURVEYLYZE</h1>
     </div>
+
     <div class="profile-menu">
-      <img src="{% static 'main/images/Alhaitham.png' %}" alt="Profile" class="profile-icon" id="profile-btn">
+<img
+  src="{% if student.profile_picture %}{{ student.profile_picture.url }}{% else %}{% static 'main/images/default_pfp.png' %}{% endif %}"
+  alt="Profile"
+  class="profile-icon"
+  id="profile-btn">
 
       <div class="dropdown-panel" id="profile-panel">
         <div class="profile-header">
@@ -35,32 +41,31 @@
   <main class="survey-wrapper">
     <section class="survey-container">
       <div class="survey-card">
-        <!-- dynamic title/description -->
+        <!-- Survey title/description -->
         <h2>{{ survey.title }}</h2>
         {% if survey.description %}
           <p class="survey-description">{{ survey.description }}</p>
         {% endif %}
 
-        <!-- Tabs -->
+        <!-- Tabs (only 1 for now) -->
         <div class="survey-tabs">
           <button class="tab active" data-step="0">Questions</button>
         </div>
 
+        <!-- Progress -->
         <div class="progress-bar">
           <div class="progress"></div>
-          <span class="progress-text">1/1</span>
         </div>
 
         <!-- Survey form -->
         <form id="survey-form" method="post">
           {% csrf_token %}
 
-          <!-- One step containing all questions for now -->
           <div class="survey-step active">
             {% for question in questions %}
               <div class="question-block">
 
-                {# LIKERT -> star rating card #}
+                {# LIKERT -> star rating #}
                 {% if question.question_type == "likert" or question.question_type == "likert_scale" %}
                   <div class="rating-question">
                     <div class="rating-header">
@@ -79,17 +84,21 @@
                             name="q{{ question.question_id }}"
                             value="{{ forloop.counter }}"
                           >
-                          <label for="q{{ question.question_id }}_{{ forloop.counter }}">★</label>
+                          <label
+                            for="q{{ question.question_id }}_{{ forloop.counter }}"
+                            data-value="{{ forloop.counter }}"
+                          >★</label>
                         {% endfor %}
                       </div>
                     </div>
                   </div>
 
-                {# SHORT ANSWER / MCQ use the normal layout #}
+                {# SHORT ANSWER / MCQ -> normal layout #}
                 {% else %}
-                  <label>{{ question.order_number }}. {{ question.question }}</label>
+                  <label class="unified-label">
+                    {{ question.order_number }}. {{ question.question }}
+                  </label>
 
-                  {# SHORT ANSWER -> text box #}
                   {% if question.question_type == "short_answer" %}
                     <input
                       type="text"
@@ -97,7 +106,6 @@
                       placeholder="Type your answer"
                     >
 
-                  {# MCQ -> dropdown from options #}
                   {% elif question.question_type == "mcq" %}
                     <select name="q{{ question.question_id }}">
                       <option value="">Select an option</option>
@@ -117,7 +125,13 @@
 
           <!-- Navigation buttons -->
           <div class="form-navigation">
-            <button type="button" class="btn prev" disabled>Previous</button>
+  <button
+    type="button"
+    class="btn prev"
+    data-back-url="{% url 'dashboard' %}"
+  >
+    Previous
+  </button>
             <button type="submit" class="btn next">Submit</button>
           </div>
         </form>
@@ -129,27 +143,7 @@
     <p>© 2025 SURVEYLYZE | All rights reserved.</p>
   </footer>
 
+  <!-- External JS -->
   <script src="{% static 'main/Javascript/survey.js' %}"></script>
-
-  <!-- Optional: live update for "x / 5" score text -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const starGroups = document.querySelectorAll('.star-rating');
-
-      starGroups.forEach(group => {
-        const radios = group.querySelectorAll('input[type="radio"]');
-        const qName = group.getAttribute('data-question-id');
-        const scoreEl = document.getElementById('score_' + qName.replace('q', ''));
-
-        radios.forEach(radio => {
-          radio.addEventListener('change', () => {
-            if (scoreEl) {
-              scoreEl.textContent = radio.value + ' / 5';
-            }
-          });
-        });
-      });
-    });
-  </script>
 </body>
 </html>
