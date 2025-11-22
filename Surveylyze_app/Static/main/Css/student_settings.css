@@ -1,0 +1,234 @@
+/* -----------------------------
+   GLOBAL
+------------------------------- */
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(180deg, #e9dbf7, #f5dcff);
+  margin: 0;
+  color: #3b264a;
+}
+
+.app-wrapper {
+  padding: 20px;
+}
+
+/* -----------------------------
+   SIDEBAR
+------------------------------- */
+.sidebar {
+  background-color: #efe1f7;
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.sidebar .profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.sidebar .avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.sidebar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sidebar .role {
+  font-size: 0.85rem;
+}
+
+.sidebar .nav-link {
+  color: #4b2a68;
+  padding: 8px 12px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #a36bf2;
+  color: #fff;
+}
+
+.sidebar .nav-link.active {
+  background-color: #b388eb;
+  color: #fff;
+  font-weight: 700;
+}
+
+.sidebar form button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.sidebar form button:hover {
+  background-color: #a36bf2;
+  color: #fff;
+  border: none;
+}
+
+/* -----------------------------
+   PANEL / CARDS
+------------------------------- */
+.panel {
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+.section-title {
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: #6c42c7;
+}
+
+.card-lite {
+  background: #f5dcff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.card-lite h5 {
+  font-weight: 700;
+  color: #3b264a;
+}
+
+.card-lite p {
+  font-size: 0.9rem;
+  color: #4b2a68;
+}
+
+/* -----------------------------
+   FORM FIELDS
+------------------------------- */
+.form-label {
+  font-weight: 600;
+  color: #3b264a;
+}
+
+input[type="text"], input[type="password"], input[type="file"] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d8b6f7;
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  border-color: #a36bf2;
+  box-shadow: 0 0 6px rgba(163,107,242,0.3);
+  outline: none;
+}
+
+/* -----------------------------
+   BUTTONS
+------------------------------- */
+.btn-primary, .btn-outline-primary {
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #b66bff, #8c4bff);
+  border: none;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #8c4bff, #6c42c7);
+  transform: translateY(-1px);
+}
+
+.btn-outline-primary {
+  border: 2px solid #a36bf2;
+  color: #6c42c7;
+}
+
+.btn-outline-primary:hover {
+  background-color: #a36bf2;
+  color: #fff;
+}
+
+/* -----------------------------
+   AVATAR PREVIEW
+------------------------------- */
+/* Avatar container */
+.avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #a36bf2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f2fc;
+  margin-bottom: 8px;
+}
+
+/* Uploaded image inside avatar */
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;  /* ensures image fills the container without distortion */
+  object-position: center; /* centers the image */
+  display: block;
+}
+/* Student info styling */
+.student-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.student-name {
+  font-size: 1.1rem;        /* slightly larger */
+  font-weight: 700;          /* bolder than before */
+  color: #4b2a68;            /* dark purple */
+  line-height: 1.2;
+}
+
+.student-role {
+  font-size: 0.8rem;        /* smaller for subtext */
+  font-weight: 500;          /* lighter than name */
+  color: #6c42c7;            /* softer purple */
+}
+
+/* File input styling */
+input[type="file"] {
+  display: block;
+  margin-top: 6px;
+}
+
+/* -----------------------------
+   RESPONSIVE
+------------------------------- */
+@media (max-width: 992px) {
+  .sidebar {
+    margin-bottom: 20px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+}

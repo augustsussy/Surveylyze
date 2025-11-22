@@ -13,61 +13,57 @@
   <section class="dashboard">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="profile-card">
-        <!-- Avatar: student profile picture with fallback -->
-        <div class="avatar-wrapper">
-          {% if student.profile_picture %}
-            <img src="{{ student.profile_picture.url }}" alt="Profile" class="avatar">
-          {% else %}
-            <img src="{% static 'main/images/default_pfp.png' %}" alt="Profile" class="avatar">
-          {% endif %}
-        </div>
+     <div class="profile-card">
+  <div class="avatar-wrapper">
+    {% if student.profile_picture %}
+      <img src="{{ student.profile_picture.url }}" alt="Profile" class="avatar">
+    {% else %}
+      <img src="{% static 'main/images/default_pfp.png' %}" alt="Profile" class="avatar">
+    {% endif %}
+  </div>
 
-        <!-- Student Info -->
-        <div class="profile-info">
-          <h4>
-            {{ student.firstname }}
-            {% if student.middlename %} {{ student.middlename }} {% endif %}
-            {{ student.lastname }}
-          </h4>
-
-          <p>ID: {{ student.student_id }}</p>
-          <p>Section: {{ student.class_section.class_name }}</p>
-        </div>
+  <div class="profile-info">
+    <h4>
+      {{ student.firstname }}
+      {% if student.middlename %} {{ student.middlename }} {% endif %}
+      {{ student.lastname }}
+    </h4>
+    <p>ID: {{ student.student_id }}</p>
+    <p>Section: {{ student.class_section.class_name }}</p>
+  </div>
 
         <!-- Icons -->
         <div class="icons">
-          <i data-lucide="bell"></i>
-          <a href="{% url 'student_settings' %}">
-            <i data-lucide="settings"></i>
-          </a>
         </div>
       </div>
 
       <nav class="menu">
-        <a href="#" class="menu-item">
-          <i data-lucide="bar-chart-3"></i>
-          <span>Response History</span>
-        </a>
 
-        <a href="#" class="menu-item">
-          <i data-lucide="clipboard-list"></i>
-          <span>Assigned Surveys</span>
-        </a>
+<!-- Settings -->
+<form action="{% url 'student_settings' %}" method="get" class="menu-item logout-btn">
+  <button type="submit" class="logout-btn">
+    <i data-lucide="user-cog"></i>
+    <span>Settings</span>
+  </button>
+</form>
 
-        <a href="{% url 'student_settings' %}" class="menu-item">
-          <i data-lucide="user-cog"></i>
-          <span>Settings</span>
-        </a>
+<!-- Logout -->
+<form id="logout-form" action="{% url 'logout' %}" method="post" class="menu-item logout-btn">
+  {% csrf_token %}
+  <button type="button" class="logout-btn" id="logout-button">
+    <i data-lucide="log-out"></i>
+    <span>Logout</span>
+  </button>
+</form>
 
-        <!-- Logout -->
-        <form action="{% url 'logout' %}" method="post" class="logout-form">
-          {% csrf_token %}
-          <button type="submit" class="menu-item logout-btn">
-            <i data-lucide="log-out"></i>
-            <span>Logout</span>
-          </button>
-        </form>
+<script>
+  document.getElementById('logout-button').addEventListener('click', function() {
+    if (confirm('Are you sure you want to logout?')) {
+      document.getElementById('logout-form').submit();
+    }
+  });
+</script>
+
       </nav>
     </aside>
 
@@ -81,32 +77,30 @@
           <h3>RESPONSE HISTORY</h3>
 
           <!-- Search + filters form -->
-          <form method="get" class="search-filter">
-            <input
-              type="text"
-              name="q"
-              placeholder="Search by title"
-              class="search-bar"
-              value="{{ request.GET.q }}"
-            >
+<form method="get" class="search-filter">
+  <div class="filter-row">
+    <input type="text" name="q" placeholder="Search by title" class="search-bar" value="{{ request.GET.q }}">
 
-            <select name="order">
-              <option value="newest"
-                {% if request.GET.order == "newest" or not request.GET.order %}selected{% endif %}>
-                Newest
-              </option>
-              <option value="oldest"
-                {% if request.GET.order == "oldest" %}selected{% endif %}>
-                Oldest
-              </option>
-            </select>
+    <select name="order">
+      <option value="newest" {% if request.GET.order == "newest" or not request.GET.order %}selected{% endif %}>Newest</option>
+      <option value="oldest" {% if request.GET.order == "oldest" %}selected{% endif %}>Oldest</option>
+    </select>
+
+    <button type="submit" class="btn-filter">
+      <i data-lucide="funnel"></i>
+      <span>Filter</span>
+    </button>
+
+    <a href="{% url 'admin_responses' %}" class="btn-clear">
+      <i data-lucide="x-circle"></i>
+      <span>Clear</span>
+    </a>
+  </div>
+
+  <button type="submit" class="search-submit" style="display:none;"></button>
+</form>
 
             <!-- status filter is just visual for now -->
-            <select name="status" disabled>
-              <option>Status</option>
-              <option selected>Completed</option>
-            </select>
-
             <!-- hidden button so Enter in the input submits the form -->
             <button type="submit" class="search-submit" style="display:none;"></button>
           </form>

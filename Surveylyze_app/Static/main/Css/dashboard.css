@@ -32,40 +32,53 @@ body {
   width: 260px;
 }
 
-/* ===== PROFILE ===== */
+/* PROFILE CARD */
 .profile-card {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
   background-color: #f8f2fc;
   border-radius: 12px;
-  margin: 15px;
+  margin: 15px 0;
   padding: 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
 }
 
-.avatar {
-  width: 50px;
-  height: 50px;
+/* Avatar */
+.avatar-wrapper {
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
-}
-
-.profile-info {
-  text-align: center;
-  opacity: 0;
-  height: 0;
   overflow: hidden;
-  transition: opacity 0.3s ease, height 0.3s ease;
+  margin-bottom: 10px;
 }
 
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Profile info hidden by default */
+.profile-info {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: width 0.3s ease, opacity 0.3s ease;
+  text-align: left;
+}
+
+/* Show profile info on sidebar hover */
 .sidebar:hover .profile-info {
+  width: 100%;
   opacity: 1;
-  height: auto;
 }
 
+/* Profile text */
 .profile-info h4 {
-  margin: 6px 0 0;
+  margin: 0 0 2px 0;
   font-size: 16px;
   font-weight: 600;
 }
@@ -76,20 +89,34 @@ body {
   margin: 2px 0;
 }
 
-/* ===== ICONS ===== */
+/* Icons */
 .icons {
   display: flex;
-  justify-content: center;
   gap: 10px;
+  justify-content: center;
   margin-top: 8px;
+  width: 100%;
+  transition: justify-content 0.3s ease;
+}
+
+/* Align icons left on hover like menu items */
+.sidebar:hover .icons {
+  justify-content: flex-start;
+  padding-left: 25px;
 }
 
 .icons i {
-  color: #4b2a68;
-  width: 18px;
-  height: 18px;
   cursor: pointer;
+  color: #4b2a68;
+  width: 20px;
+  height: 20px;
+  transition: color 0.3s ease;
 }
+
+.icons a i {
+  color: #4b2a68;
+}
+
 
 /* ===== MENU ===== */
 .menu {
@@ -112,6 +139,58 @@ body {
   border-radius: 8px;
   justify-content: center;
   transition: all 0.3s ease;
+}
+/* Make the logout button behave like other menu items */
+.logout-btn {
+  background: none;
+  border: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+  color: #000;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  justify-content: left; /* same as default menu items */
+}
+
+/* Icon size matches other items */
+.logout-btn i {
+  width: 20px;
+  height: 20px;
+  color: #3b264a;
+}
+
+/* Text hidden by default */
+.logout-btn span {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Hover effect: show text */
+.sidebar:hover .logout-btn span {
+  opacity: 1;
+  transition-delay: 0.1s;
+}
+
+/* Align text like other menu items on hover */
+.sidebar:hover .logout-btn {
+  justify-content: flex-start;
+  padding-left: 25px;
+}
+
+/* Hover background & icon color */
+.logout-btn:hover {
+  background-color: #b784f7;
+  color: #fff;
+}
+
+.sidebar:hover .logout-btn:hover i {
+  color: #fff;
 }
 
 .menu-item span {
@@ -246,17 +325,41 @@ body {
 
 /* CARDS */
 .card {
-  background-color: #f6ebfc;
+  background-color: #f5dcff;
   border-radius: 15px;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
   padding: 20px;
 }
 /* --- RESPONSE HISTORY TABLE --- */
 .search-filter {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+ background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--purple-200);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
 }
+.filter-card .btn-primary {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+@media (min-width: 768px) {
+    .col-md-2 {
+        flex: 0 0 auto;
+        width: 16.66666667%;
+    }}
+.filter-card .btn-outline-secondary {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    padding: 0.65rem 0.75rem;
+}
+
 
 .search-filter input,
 .search-filter select {
@@ -272,6 +375,7 @@ body {
   max-height: 300px;
   overflow-y: auto;
   border-radius: 10px;
+    padding-right: 8px;
 }
 
 .table-row {
@@ -282,6 +386,112 @@ body {
   align-items: center;
 }
 
+/* Filter and Clear buttons - compact */
+.filter-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+/* Filter button */
+.btn-filter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;         /* very small padding */
+  border-radius: 6px;
+  background-color: #a36bf2;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;        /* smaller font */
+  height: 34px;              /* match search input height */
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btn-filter:hover {
+  background-color: #b784f7;
+}
+
+/* Clear button */
+.btn-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 2px solid #a36bf2;
+  color: #a36bf2;
+  font-weight: 600;
+  font-size: 0.8rem;
+  height: 34px;             /* match search input height */
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.btn-clear:hover {
+  background-color: #f8f2fc;
+  color: #6c42c7;
+  border-color: #6c42c7;
+}
+
+/* Icons */
+.btn-filter i,
+.btn-clear i {
+  width: 16px;
+  height: 16px;
+}
+.search-filter .filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap; /* responsive wrap on small screens */
+}
+
+.search-filter input,
+.search-filter select,
+.search-filter .btn-filter,
+.search-filter .btn-clear {
+  height: 34px; /* match heights */
+}
+
+.search-filter input {
+  flex: 1;           /* stretch input */
+  min-width: 120px;
+  padding: 0 10px;
+}
+
+.search-filter select {
+  width: 120px;
+  padding: 0 8px;
+}
+
+.search-filter .btn-filter,
+.search-filter .btn-clear {
+  padding: 0 10px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-filter .btn-filter i,
+.search-filter .btn-clear i {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+
+@media (max-width: 1200px) {
+  .filter-card .row {
+    row-gap: 1rem;
+  }
+}
 .table-row.header {
   background-color: #cfa8f9;
   color: #fff;
@@ -290,6 +500,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
+    text-align: justify;
 }
 
 .table-body {
@@ -315,14 +526,7 @@ body {
 }
 
 /* Scrollbar */
-.response-table::-webkit-scrollbar {
-  width: 6px;
-}
 
-.response-table::-webkit-scrollbar-thumb {
-  background-color: #b785f7;
-  border-radius: 10px;
-}
 
 
 .response-item,
