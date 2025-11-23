@@ -121,19 +121,19 @@ body {
 
 /* Progress */
 .progress-bar {
-  background: #f1e6fb;
-  border-radius: 10px;
-  height: 10px;
-  margin: 10px 0 25px;
-  position: relative;
+  width: 100%;
+  height: 8px;
+  background: #eee;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 1rem 0;
 }
 
 .progress {
-  background: #7b47e8;
-  height: 10px;
-  border-radius: 10px;
-  width: 33%;
-  transition: width 0.3s ease;
+  height: 100%;
+  width: 0;                 /* will be updated by JS */
+  background: #8b5cf6;      /* your purple */
+  transition: width .3s ease;
 }
 
 .progress-text {
@@ -380,4 +380,7 @@ input:focus, select:focus, textarea:focus {
 .star-rating label:hover {
   transform: translateY(-1px);
 }
+
+
+
 
