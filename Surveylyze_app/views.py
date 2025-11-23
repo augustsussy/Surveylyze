@@ -395,73 +395,65 @@ def survey_builder(request):
 
     sections = models.ClassSection.objects.all().order_by("year_level", "class_name")
 
-    # Check if we're editing an existing survey
-    edit_survey_id = request.GET.get('edit')
+    # ✅ CHECK IF EDITING (via GET parameter) - ONLY FOR GET REQUESTS
+    survey_id = request.GET.get('survey_id')
     edit_survey = None
-    survey_data = None
+    survey_data_json = None
 
-    if edit_survey_id:
+    if survey_id:
         try:
-            edit_survey = models.Survey.objects.get(pk=edit_survey_id)
+            edit_survey = models.Survey.objects.get(pk=survey_id)
 
-            # Check if this teacher owns the survey
-            try:
-                teacher = request.user.teacher_profile
-                if edit_survey.teacher != teacher and not request.user.is_superuser:
-                    messages.error(request, "You don't have permission to edit this survey.")
-                    return redirect("my_surveys")
-            except:
-                pass
-
-            # Get all questions with their options
-            questions = edit_survey.questions.all().order_by('order_number')
+            # ✅ Build survey data JSON for frontend
             questions_data = []
-
-            for q in questions:
-                question_dict = {
+            for q in edit_survey.questions.all().order_by('order_number'):
+                question_obj = {
                     'question_id': q.question_id,
-                    'order_number': q.order_number,
                     'question': q.question,
                     'question_type': q.question_type,
+                    'order_number': q.order_number,
                 }
 
-                # If MCQ, get options
+                # ✅ Add options for MCQ
                 if q.question_type == 'mcq':
-                    options = list(q.options.all().values_list('option_text', flat=True))
-                    question_dict['options'] = options
+                    question_obj['options'] = [opt.option_text for opt in q.options.all()]
 
-                questions_data.append(question_dict)
+                questions_data.append(question_obj)
 
-            # Get assigned section
-            assignment = models.SurveyAssignment.objects.filter(survey=edit_survey).first()
-            assigned_section = assignment.class_section.class_id if assignment else None
+            # ✅ Get assigned sections
+            assigned_sections = list(
+                edit_survey.assignments.values_list('class_section_id', flat=True)
+            )
 
             survey_data = {
                 'survey_id': edit_survey.survey_id,
                 'title': edit_survey.title,
                 'description': edit_survey.description or '',
-                'due_date': edit_survey.due_date.strftime('%Y-%m-%d') if edit_survey.due_date else '',
-                'status': edit_survey.status,
-                'assigned_section': assigned_section,
-                'questions': questions_data
+                'due_date': edit_survey.due_date.isoformat() if edit_survey.due_date else '',
+                'assigned_sections': assigned_sections,
+                'questions': questions_data,
             }
+
+            survey_data_json = json.dumps(survey_data)
 
         except models.Survey.DoesNotExist:
             messages.error(request, "Survey not found.")
-            return redirect("my_surveys")
+            return redirect("analytics_admin")
 
+    # ✅✅✅ CRITICAL: POST HANDLING MUST BE AT TOP LEVEL (NOT INSIDE if survey_id)
     if request.method == "POST":
-        # Check if we're updating or creating
-        survey_id = request.POST.get('survey_id')
-
+        survey_id = request.POST.get("survey_id")  # Get from POST, not GET
         title = (request.POST.get("title") or "").strip()
         description = (request.POST.get("description") or "").strip() or None
+
+
         due_raw = request.POST.get("dueDate")
-        section_id = request.POST.get("assignTo")
+        selected_sections = request.POST.get("selectedSections", "")
         action = request.POST.get("action")
 
         status = "published" if action == "publish" else "draft"
 
+        # Parse due date
         due_date = None
         if due_raw:
             try:
@@ -470,39 +462,28 @@ def survey_builder(request):
                 messages.error(request, "Invalid due date format.")
                 return redirect("survey_builder")
 
+        # Get teacher
         try:
             teacher = request.user.teacher_profile
         except Exception:
             teacher = get_object_or_404(models.Teacher, user=request.user)
 
-        # UPDATE existing survey
+        # UPDATE existing survey OR CREATE new survey
         if survey_id:
             try:
-                survey = models.Survey.objects.get(pk=survey_id)
-
-                # Verify ownership
-                if survey.teacher != teacher and not request.user.is_superuser:
-                    messages.error(request, "You don't have permission to edit this survey.")
-                    return redirect("my_surveys")
-
-                # Update survey fields
+                survey = models.Survey.objects.get(pk=survey_id, teacher=teacher)
                 survey.title = title
                 survey.description = description
                 survey.status = status
                 survey.due_date = due_date
                 survey.save()
-
-                # Delete old questions
                 survey.questions.all().delete()
-
-                # Delete old assignments
-                models.SurveyAssignment.objects.filter(survey=survey).delete()
-
+                survey.assignments.all().delete()
+                messages.success(request, f'Survey "{survey.title}" updated successfully!')
             except models.Survey.DoesNotExist:
-                messages.error(request, "Survey not found.")
-                return redirect("my_surveys")
+                messages.error(request, "Survey not found or you don't have permission.")
+                return redirect("analytics_admin")
         else:
-            # CREATE new survey
             survey = models.Survey.objects.create(
                 teacher=teacher,
                 title=title,
@@ -510,21 +491,30 @@ def survey_builder(request):
                 status=status,
                 due_date=due_date,
             )
+            messages.success(request, f'Survey "{survey.title}" created successfully!')
 
-        # Link survey to section
-        if status == "published" and section_id:
-            section = get_object_or_404(models.ClassSection, pk=section_id)
-            models.SurveyAssignment.objects.create(
-                survey=survey,
-                class_section=section,
-            )
+        # Link survey to sections
+        if selected_sections:
+            section_ids = [s.strip() for s in selected_sections.split(",") if s.strip()]
+            for section_id in section_ids:
+                try:
+                    section = models.ClassSection.objects.get(pk=section_id)
+                    models.SurveyAssignment.objects.create(
+                        survey=survey,
+                        class_section=section,
+                    )
+                except models.ClassSection.DoesNotExist:
+                    pass
 
-        # Save questions
+        # Save questions from JSON
         questions_json = request.POST.get("questions", "[]")
+        print(f"🔍 Received questions JSON: {questions_json}")
 
         try:
             questions = json.loads(questions_json)
+            print(f"🔍 Parsed {len(questions)} questions")
         except json.JSONDecodeError:
+            print("❌ Failed to parse questions JSON")
             questions = []
 
         for q in questions:
@@ -535,6 +525,8 @@ def survey_builder(request):
             q_type = q.get("question_type") or "short_answer"
             order = q.get("order_number") or 1
             options = q.get("options") or []
+
+            print(f"🔍 Creating question: {text} (type: {q_type})")
 
             question_obj = models.Question.objects.create(
                 survey=survey,
@@ -552,23 +544,21 @@ def survey_builder(request):
                         question=question_obj,
                         option_text=opt_text,
                     )
+                    print(f"  ✅ Created option: {opt_text}")
 
-        if survey_id:
-            messages.success(request, f'Survey "{survey.title}" updated successfully!')
-        else:
-            messages.success(request,
-                             f'Survey "{survey.title}" saved as {survey.status} with {len(questions)} question(s).')
+        print(f"✅ Finished saving {len(questions)} questions for survey {survey.survey_id}")
 
+        # Redirect
         if status == "published":
-            return redirect("analytics_admin")
+            return redirect("my_surveys")
+        return redirect("survey_builder")
 
-        return redirect("my_surveys")
-
+    # ✅ GET request - render form
     return render(request, "main/surveyBuilder_admin.html", {
         "sections": sections,
         "title": "Survey Builder",
         "edit_survey": edit_survey,
-        "survey_data": json.dumps(survey_data) if survey_data else None,
+        "survey_data": survey_data_json,
     })
 
 from django.db.models import Q

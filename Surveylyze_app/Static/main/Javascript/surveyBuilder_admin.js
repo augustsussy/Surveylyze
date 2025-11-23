@@ -1,7 +1,7 @@
 /* ===============================
    CONFIG / ROUTES
 ================================= */
-const DASHBOARD_URL = '/analytics-admin/'; // Fixed URL
+const DASHBOARD_URL = '/my-surveys/'; // ✅ Changed to My Surveys
 
 /* ===============================
    DOM ELEMENTS
@@ -13,8 +13,9 @@ const dateIcon     = document.getElementById('dateIcon');
 const dueDateInput = document.getElementById('dueDate');
 const topbar       = document.querySelector('.topbar');
 const modal        = document.getElementById('modalOverlay');
+const publishModal = document.getElementById('publishModalOverlay');
+const backModal    = document.getElementById('backModalOverlay');
 const assignSelect = document.getElementById('assignTo');
-const statusToggle = document.getElementById('statusToggle');
 const btnSave      = document.getElementById('btnSave');
 const btnPublish   = document.getElementById('btnPublish');
 const btnExport    = document.getElementById('btnExport');
@@ -23,6 +24,15 @@ const btnBack      = document.getElementById('btnBack');
 const btnNew       = document.getElementById('btnNew');
 const modalCancel  = document.getElementById('modalCancel');
 const modalConfirm = document.getElementById('modalConfirm');
+const publishModalCancel  = document.getElementById('publishModalCancel');
+const publishModalConfirm = document.getElementById('publishModalConfirm');
+const backModalCancel     = document.getElementById('backModalCancel');
+const backModalConfirm    = document.getElementById('backModalConfirm');
+const saveDraftModal = document.getElementById('saveDraftModalOverlay');
+const saveDraftModalCancel = document.getElementById('saveDraftModalCancel');
+const saveDraftModalConfirm = document.getElementById('saveDraftModalConfirm');
+const openSaveDraftModal = () => saveDraftModal && saveDraftModal.classList.add('show');
+const closeSaveDraftModal = () => saveDraftModal && saveDraftModal.classList.remove('show');
 
 const settingsForm = document.getElementById('surveySettingsForm');
 
@@ -35,7 +45,8 @@ const state = {
     dueDate: '',
     published: false
   },
-  questions: []
+  questions: [],
+  hasUnsavedChanges: false
 };
 
 const uid = () => 'q_' + Math.random().toString(36).slice(2, 9);
@@ -78,7 +89,7 @@ const labelFor = t =>
 /* ===============================
    RENDER QUESTIONS
 ================================= */
-function render() {
+function renderQuestions() {
   if (!canvas) {
     console.error("Canvas element not found!");
     return;
@@ -141,6 +152,7 @@ function render() {
 
     prompt.addEventListener('input', e => {
       q.text = e.target.value;
+      state.hasUnsavedChanges = true;
     });
     card.appendChild(prompt);
 
@@ -161,6 +173,7 @@ function render() {
         const editable = row.querySelector('[contenteditable]');
         editable.addEventListener('input', e => {
           q.options[idx] = e.target.textContent;
+          state.hasUnsavedChanges = true;
         });
 
         const addBtn = row.querySelector('.add-opt');
@@ -218,6 +231,11 @@ function render() {
 
     canvas.appendChild(card);
   });
+}
+
+function render() {
+  renderQuestions();
+  state.hasUnsavedChanges = true;
 }
 
 /* ===============================
@@ -344,11 +362,21 @@ if (menuBtn && menu) {
 }
 
 /* ===============================
-   MODAL (New Survey)
+   MODAL FUNCTIONS
 ================================= */
 const openModal  = () => modal && modal.classList.add('show');
 const closeModal = () => modal && modal.classList.remove('show');
 
+const openPublishModal  = () => publishModal && publishModal.classList.add('show');
+const closePublishModal = () => publishModal && publishModal.classList.remove('show');
+
+const openBackModal  = () => backModal && backModal.classList.add('show');
+const closeBackModal = () => backModal && backModal.classList.remove('show');
+
+/* ===============================
+   MODAL HANDLERS
+================================= */
+// New Survey Modal
 if (btnNew) btnNew.onclick = openModal;
 if (modalCancel) modalCancel.onclick = closeModal;
 
@@ -357,12 +385,6 @@ if (modal) {
     if (e.target === modal) closeModal();
   });
 }
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && modal && modal.classList.contains('show')) {
-    closeModal();
-  }
-});
 
 if (modalConfirm) {
   modalConfirm.onclick = () => {
@@ -374,9 +396,9 @@ if (modalConfirm) {
     ];
     document.getElementById('surveyTitle').value = '';
     document.getElementById('surveyDescription').value = '';
-    document.getElementById('assignTo').value = '';
+    const firstDropdown = document.querySelector('.section-dropdown');
+    if (firstDropdown) firstDropdown.value = '';
     document.getElementById('dueDate').value = '';
-    document.getElementById('statusToggle').checked = false;
 
     // Remove survey_id if editing
     const surveyIdInput = document.querySelector('input[name="survey_id"]');
@@ -384,9 +406,85 @@ if (modalConfirm) {
       surveyIdInput.remove();
     }
 
-    render();
+    state.hasUnsavedChanges = false;
+    renderQuestions();
     closeModal();
   };
+}
+
+// Publish Modal
+if (publishModalCancel) {
+  publishModalCancel.onclick = closePublishModal;
+}
+
+if (publishModal) {
+  publishModal.addEventListener('click', e => {
+    if (e.target === publishModal) closePublishModal();
+  });
+}
+
+if (publishModalConfirm) {
+  publishModalConfirm.onclick = () => {
+    closePublishModal();
+
+    // ✅ Check form validity BEFORE serializing
+    if (!settingsForm.checkValidity()) {
+      settingsForm.reportValidity(); // Shows validation errors
+      return; // Stop if invalid
+    }
+
+    serializeQuestions();
+
+    if (settingsForm) {
+      const actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = 'action';
+      actionInput.value = 'publish';
+      settingsForm.appendChild(actionInput);
+
+      state.hasUnsavedChanges = false;
+      settingsForm.submit();
+    }
+  };
+}
+
+// Back Modal
+if (backModalCancel) {
+  backModalCancel.onclick = closeBackModal;
+}
+
+if (backModal) {
+  backModal.addEventListener('click', e => {
+    if (e.target === backModal) closeBackModal();
+  });
+}
+
+if (backModalConfirm) {
+  backModalConfirm.onclick = () => {
+    closeBackModal();
+    state.hasUnsavedChanges = false;
+    window.location.href = DASHBOARD_URL;
+  };
+}
+
+// Close modals on ESC
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (modal && modal.classList.contains('show')) closeModal();
+    if (publishModal && publishModal.classList.contains('show')) closePublishModal();
+    if (backModal && backModal.classList.contains('show')) closeBackModal();
+    if (saveDraftModal && saveDraftModal.classList.contains('show')) closeSaveDraftModal(); // Add this
+  }
+});
+
+/* ===============================
+   TRACK CHANGES
+================================= */
+// Mark as changed when form fields change
+if (settingsForm) {
+  settingsForm.addEventListener('input', () => {
+    state.hasUnsavedChanges = true;
+  });
 }
 
 /* ===============================
@@ -408,6 +506,20 @@ if (topbar) {
 /* ===============================
    TOP BUTTONS
 ================================= */
+if (btnSave) {
+  btnSave.onclick = (e) => {
+    e.preventDefault();
+    openSaveDraftModal();
+  };
+}
+
+if (btnPublish) {
+  btnPublish.onclick = (e) => {
+    e.preventDefault();
+    openPublishModal();
+  };
+}
+
 if (btnExport) {
   btnExport.onclick = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], {
@@ -426,7 +538,47 @@ if (btnPreview) {
 
 if (btnBack) {
   btnBack.onclick = () => {
-    window.location.href = DASHBOARD_URL;
+    if (state.hasUnsavedChanges) {
+      openBackModal();
+    } else {
+      window.location.href = DASHBOARD_URL;
+    }
+  };
+}
+
+// Save Draft Modal handlers
+if (saveDraftModalCancel) {
+  saveDraftModalCancel.onclick = closeSaveDraftModal;
+}
+
+if (saveDraftModal) {
+  saveDraftModal.addEventListener('click', e => {
+    if (e.target === saveDraftModal) closeSaveDraftModal();
+  });
+}
+
+if (saveDraftModalConfirm) {
+  saveDraftModalConfirm.onclick = () => {
+    closeSaveDraftModal();
+
+    // ✅ Check form validity
+    if (!settingsForm.checkValidity()) {
+      settingsForm.reportValidity();
+      return;
+    }
+
+    serializeQuestions();
+
+    if (settingsForm) {
+      const actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = 'action';
+      actionInput.value = 'draft';
+      settingsForm.appendChild(actionInput);
+
+      state.hasUnsavedChanges = false;
+      settingsForm.submit();
+    }
   };
 }
 
@@ -436,18 +588,14 @@ if (btnBack) {
 if (assignSelect) {
   assignSelect.addEventListener('input', e => {
     state.meta.assignTo = e.target.value;
+    state.hasUnsavedChanges = true;
   });
 }
 
 if (dueDateInput) {
   dueDateInput.addEventListener('input', e => {
     state.meta.dueDate = e.target.value;
-  });
-}
-
-if (statusToggle) {
-  statusToggle.addEventListener('change', e => {
-    state.meta.published = e.target.checked;
+    state.hasUnsavedChanges = true;
   });
 }
 
@@ -538,42 +686,54 @@ function escapeHTML(str = '') {
 /* ===============================
    SAVE QUESTIONS TO HIDDEN INPUT
 ================================= */
-if (settingsForm) {
-  settingsForm.addEventListener('submit', (e) => {
-    console.log("Form submitting...");
+function serializeQuestions() {
+  console.log("📤 Serializing questions...");
 
-    syncOrderFromDOM();
+  // Check if survey_id exists
+  const surveyIdInput = document.querySelector('input[name="survey_id"]');
+  if (surveyIdInput) {
+    console.log("✅ survey_id found:", surveyIdInput.value);
+  } else {
+    console.log("⚠️ No survey_id - creating new survey");
+  }
 
-    const questionsPayload = [];
-    const cards = document.querySelectorAll('#canvas .q-card');
+  console.log("🔍 Current state.questions:", state.questions);
+  console.log("🔍 Number of questions in state:", state.questions.length);
 
-    cards.forEach((card, index) => {
-      const id = card.dataset.id;
-      const type = card.dataset.type;
+  syncOrderFromDOM();
 
-      const fromState = state.questions.find(q => q.id === id);
-      if (!fromState) {
-        console.warn("Question not found in state:", id);
+  const questionsPayload = [];
+  const cards = document.querySelectorAll('#canvas .q-card');
+
+  console.log(`📝 Processing ${cards.length} question cards`);
+
+  cards.forEach((card, index) => {
+    const id = card.dataset.id;
+    const type = card.dataset.type;
+
+    console.log(`\n🔎 Looking for card ${index + 1} with ID:`, id);
+
+    const fromState = state.questions.find(q => q.id === id);
+    if (!fromState) {
+      console.warn("❌ Question not found in state:", id);
+      console.warn("Available IDs in state:", state.questions.map(q => q.id));
+
+      // FALLBACK: Get data from DOM
+      const input = card.querySelector('.input');
+      const text = input ? input.value.trim() : '';
+
+      if (!text) {
+        console.warn("No text found, skipping this card");
         return;
       }
 
-      // Map question type
+      console.log("✅ Using fallback - getting data from DOM");
+
       let questionType = 'short_answer';
       if (type === 'multiple_choice' || type === 'mcq') {
         questionType = 'mcq';
       } else if (type === 'likert' || type === 'likert_scale') {
         questionType = 'likert';
-      } else if (type === 'short_answer') {
-        questionType = 'short_answer';
-      }
-
-      // Get question text
-      const input = card.querySelector('.input');
-      const text = (input && input.value.trim()) || fromState.text || '';
-
-      if (!text) {
-        console.warn("Empty question text, skipping");
-        return;
       }
 
       const questionObj = {
@@ -582,40 +742,163 @@ if (settingsForm) {
         question_type: questionType,
       };
 
-      // Get MCQ options
       if (questionType === 'mcq') {
         const options = [];
         const optionEls = card.querySelectorAll('.mc-opt [contenteditable]');
-
         optionEls.forEach(optEl => {
           const val = optEl.textContent.trim();
           if (val) options.push(val);
         });
-
-        if (options.length === 0 && fromState.options) {
-          questionObj.options = fromState.options;
-        } else {
-          questionObj.options = options;
-        }
+        questionObj.options = options.length > 0 ? options : ['Option 1', 'Option 2', 'Option 3'];
       }
 
       questionsPayload.push(questionObj);
-    });
-
-    console.log("Questions to save:", questionsPayload);
-
-    let hidden = document.getElementById('questionsData');
-    if (!hidden) {
-      hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.name = 'questions';
-      hidden.id = 'questionsData';
-      settingsForm.appendChild(hidden);
+      console.log(`✅ Question ${index + 1} processed (fallback):`, questionObj.question);
+      return;
     }
 
-    hidden.value = JSON.stringify(questionsPayload);
-    console.log("Hidden input value:", hidden.value);
+    console.log("✅ Found in state:", fromState.text);
+
+    let questionType = 'short_answer';
+    if (type === 'multiple_choice' || type === 'mcq') {
+      questionType = 'mcq';
+    } else if (type === 'likert' || type === 'likert_scale') {
+      questionType = 'likert';
+    }
+
+    const input = card.querySelector('.input');
+    const text = (input && input.value.trim()) || fromState.text || '';
+
+    if (!text) {
+      console.warn("Empty question text, skipping");
+      return;
+    }
+
+    const questionObj = {
+      order_number: index + 1,
+      question: text,
+      question_type: questionType,
+    };
+
+    if (questionType === 'mcq') {
+      const options = [];
+      const optionEls = card.querySelectorAll('.mc-opt [contenteditable]');
+
+      optionEls.forEach(optEl => {
+        const val = optEl.textContent.trim();
+        if (val) options.push(val);
+      });
+
+      if (options.length === 0 && fromState.options) {
+        questionObj.options = fromState.options;
+      } else {
+        questionObj.options = options;
+      }
+    }
+
+    questionsPayload.push(questionObj);
+    console.log(`✅ Question ${index + 1} processed:`, questionObj.question);
   });
+
+  console.log("📊 Final questions payload:", questionsPayload);
+  console.log("📊 Number of questions to save:", questionsPayload.length);
+
+  let hidden = document.getElementById('questionsData');
+  if (!hidden) {
+    hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = 'questions';
+    hidden.id = 'questionsData';
+    settingsForm.appendChild(hidden);
+  }
+
+  hidden.value = JSON.stringify(questionsPayload);
+  console.log("✅ Questions data serialized and set in hidden input");
+}
+
+if (settingsForm) {
+  settingsForm.addEventListener('submit', (e) => {
+    console.log("📤 Form submitting via event listener...");
+    serializeQuestions();
+  });
+}
+
+/* ===============================
+   SECTION SELECTOR (+/- BUTTONS)
+================================= */
+const sectionContainer = document.getElementById('sectionSelectorsContainer');
+const selectedSectionsInput = document.getElementById('selectedSectionsInput');
+const addSectionBtn = document.getElementById('addSectionBtn');
+
+if (sectionContainer && selectedSectionsInput && addSectionBtn) {
+
+  const firstDropdown = sectionContainer.querySelector('.section-dropdown');
+  const optionsHTML = firstDropdown ? firstDropdown.innerHTML : '';
+
+  addSectionBtn.addEventListener('click', () => {
+    const newRow = document.createElement('div');
+    newRow.className = 'section-selector-row';
+    newRow.innerHTML = `
+      <select class="section-dropdown" required>
+        ${optionsHTML}
+      </select>
+      <button type="button" class="section-btn remove-section" title="Remove">
+        <i class="bi bi-dash-lg"></i>
+      </button>
+    `;
+
+    sectionContainer.appendChild(newRow);
+    updateRemoveButtons();
+    updateSelectedSections();
+    state.hasUnsavedChanges = true;
+  });
+
+  sectionContainer.addEventListener('click', (e) => {
+    const removeBtn = e.target.closest('.remove-section');
+    if (removeBtn) {
+      const row = removeBtn.closest('.section-selector-row');
+      const rows = sectionContainer.querySelectorAll('.section-selector-row');
+
+      if (rows.length > 1) {
+        row.remove();
+        updateRemoveButtons();
+        updateSelectedSections();
+        state.hasUnsavedChanges = true;
+      }
+    }
+  });
+
+  sectionContainer.addEventListener('change', (e) => {
+    if (e.target.classList.contains('section-dropdown')) {
+      updateSelectedSections();
+      state.hasUnsavedChanges = true;
+    }
+  });
+
+  function updateRemoveButtons() {
+    const rows = sectionContainer.querySelectorAll('.section-selector-row');
+    const removeButtons = sectionContainer.querySelectorAll('.remove-section');
+
+    removeButtons.forEach(btn => {
+      btn.disabled = rows.length === 1;
+    });
+  }
+
+  function updateSelectedSections() {
+    const dropdowns = sectionContainer.querySelectorAll('.section-dropdown');
+    const selected = Array.from(dropdowns)
+      .map(dropdown => dropdown.value)
+      .filter(value => value !== '');
+
+    const unique = [...new Set(selected)];
+
+    selectedSectionsInput.value = unique.join(',');
+
+    console.log('Selected sections:', unique);
+  }
+
+  updateRemoveButtons();
+  updateSelectedSections();
 }
 
 /* ===============================
@@ -623,42 +906,94 @@ if (settingsForm) {
 ================================= */
 console.log("🚀 Initializing Survey Builder...");
 
-// Check if we're editing a survey
 const surveyDataEl = document.getElementById('surveyData');
 
 if (surveyDataEl) {
   const surveyDataJSON = surveyDataEl.textContent.trim();
   console.log("📋 Found survey data element");
+  console.log("📄 Raw JSON:", surveyDataJSON);
 
   try {
     const surveyData = JSON.parse(surveyDataJSON);
+    console.log("✅ Parsed survey data:", surveyData);
 
     if (surveyData && surveyData.survey_id) {
       console.log("✏️ EDITING MODE - Loading survey:", surveyData.title);
 
-      // Populate form fields
+      let surveyIdInput = document.querySelector('input[name="survey_id"]');
+      if (!surveyIdInput) {
+        surveyIdInput = document.createElement('input');
+        surveyIdInput.type = 'hidden';
+        surveyIdInput.name = 'survey_id';
+        settingsForm.appendChild(surveyIdInput);
+        console.log("✅ Created survey_id hidden input");
+      }
+      surveyIdInput.value = surveyData.survey_id;
+      console.log("✅ Set survey_id to:", surveyData.survey_id);
+
       if (surveyData.title) {
         document.getElementById('surveyTitle').value = surveyData.title;
+        console.log("✅ Title loaded:", surveyData.title);
       }
       if (surveyData.description) {
         document.getElementById('surveyDescription').value = surveyData.description;
-      }
-      if (surveyData.assigned_section) {
-        document.getElementById('assignTo').value = surveyData.assigned_section;
+        console.log("✅ Description loaded");
       }
       if (surveyData.due_date) {
-        document.getElementById('dueDate').value = surveyData.due_date;
-      }
-      if (surveyData.status === 'published') {
-        document.getElementById('statusToggle').checked = true;
+        const dueDateField = document.getElementById('dueDate');
+        if (dueDateField) {
+          dueDateField.value = surveyData.due_date;
+          console.log("✅ Due date loaded:", surveyData.due_date);
+        }
       }
 
-      // Load questions
+      if (surveyData.assigned_sections && surveyData.assigned_sections.length > 0) {
+        console.log("✅ Loading sections:", surveyData.assigned_sections);
+
+        const container = document.getElementById('sectionSelectorsContainer');
+        const firstDropdown = container.querySelector('.section-dropdown');
+        const optionsHTML = firstDropdown ? firstDropdown.innerHTML : '';
+
+        console.log("📦 Saved options HTML");
+
+        container.innerHTML = '';
+
+        surveyData.assigned_sections.forEach((sectionId, index) => {
+          console.log(`Creating row ${index + 1} for section:`, sectionId);
+
+          const row = document.createElement('div');
+          row.className = 'section-selector-row';
+          row.innerHTML = `
+            <select class="section-dropdown" required>
+              ${optionsHTML}
+            </select>
+            <button type="button" class="section-btn remove-section" title="Remove">
+              <i class="bi bi-dash-lg"></i>
+            </button>
+          `;
+
+          container.appendChild(row);
+
+          const dropdown = row.querySelector('.section-dropdown');
+          dropdown.value = sectionId;
+
+          console.log(`✅ Section ${sectionId} selected in dropdown ${index + 1}`);
+        });
+
+        if (typeof updateRemoveButtons === 'function') {
+          updateRemoveButtons();
+        }
+        if (typeof updateSelectedSections === 'function') {
+          updateSelectedSections();
+        }
+
+        console.log("✅ All sections loaded");
+      }
+
       if (surveyData.questions && surveyData.questions.length > 0) {
         console.log(`📝 Loading ${surveyData.questions.length} questions`);
 
         state.questions = surveyData.questions.map((q, idx) => {
-          // Normalize type
           let normalizedType = q.question_type;
           if (q.question_type === 'mcq') {
             normalizedType = 'multiple_choice';
@@ -666,16 +1001,18 @@ if (surveyDataEl) {
             normalizedType = 'likert';
           }
 
+          console.log(`Question ${idx + 1}:`, q.question, 'Type:', normalizedType);
+
           const newQ = {
             id: uid(),
             type: normalizedType,
             text: q.question,
           };
 
-          // Load MCQ options
           if (normalizedType === 'multiple_choice') {
             if (q.options && q.options.length > 0) {
               newQ.options = q.options;
+              console.log(`  → Options:`, q.options);
             } else {
               newQ.options = ['Option 1', 'Option 2', 'Option 3'];
             }
@@ -686,33 +1023,34 @@ if (surveyDataEl) {
 
         console.log("✅ Questions loaded into state:", state.questions.length);
 
-        // Render questions
         setTimeout(() => {
-          render();
+          renderQuestions();
           console.log("✅ Canvas rendered with questions");
         }, 100);
       } else {
         console.log("⚠️ No questions found in survey data");
-        render();
+        renderQuestions();
       }
+
+      // Mark as not changed when loading
+      state.hasUnsavedChanges = false;
     }
   } catch (e) {
     console.error("❌ Error parsing survey data:", e);
-    // Load default questions
+    console.error("❌ JSON that failed:", surveyDataJSON);
     state.questions = [
       TEMPLATES.short_answer(),
       TEMPLATES.likert(),
       TEMPLATES.multiple_choice()
     ];
-    render();
+    renderQuestions();
   }
 } else {
   console.log("➕ NEW SURVEY MODE");
-  // New survey - load starter questions
   state.questions = [
     TEMPLATES.short_answer(),
     TEMPLATES.likert(),
     TEMPLATES.multiple_choice()
   ];
-  render();
+  renderQuestions();
 }

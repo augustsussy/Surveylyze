@@ -11,7 +11,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="{% static 'main/css/surveyBuilder_admin.css' %}">
+  <link rel="stylesheet" href="{% static 'main/Css/surveyBuilder_admin.css' %}">
 </head>
 <body>
 <!-- Hidden survey data for editing -->
@@ -99,7 +99,7 @@
     <input type="hidden" name="survey_id" value="{{ edit_survey.survey_id }}">
   {% endif %}
 
-  <!-- only this hidden input is needed -->
+  <!-- Hidden input for questions -->
   <input type="hidden" id="questionsData" name="questions">
 
   <!-- Survey Title -->
@@ -115,49 +115,55 @@
     >
   </div>
 
-<!-- Survey Description -->
-<label class="label" for="surveyDescription">Description</label>
-<div class="field">
-  <textarea
-    id="surveyDescription"
-    name="description"
-    class="control"
-    rows="4"
-  ></textarea>
-</div>
+  <!-- Survey Description -->
+  <label class="label" for="surveyDescription">Description</label>
+  <div class="field">
+    <textarea
+      id="surveyDescription"
+      name="description"
+      class="control"
+      rows="4"
+    ></textarea>
+  </div>
 
-          <!-- Assign To (Class Sections) -->
-          <label class="label">Assign to</label>
-          <div class="field with-icon">
-            <select id="assignTo" name="assignTo" required>
-              <option value="">— Select Section —</option>
-              {% for section in sections %}
-                <option value="{{ section.class_id }}">
-                  {{ section.class_name }} (Year {{ section.year_level }})
-                </option>
-              {% empty %}
-                <option disabled>No sections available</option>
-              {% endfor %}
-            </select>
-            <i class="bi bi-chevron-down field-icon"></i>
-          </div>
+  <!-- Assign To (Class Sections) -->
+  <label class="label">Assign to</label>
+  <div class="field">
+    <div id="sectionSelectorsContainer">
+      <!-- Initial dropdown row -->
+      <div class="section-selector-row">
+        <select class="section-dropdown" required>
+          <option value="">— Select Section —</option>
+          {% for section in sections %}
+            <option value="{{ section.class_id }}">
+              {{ section.class_name }} (Year {{ section.year_level }})
+            </option>
+          {% empty %}
+            <option disabled>No sections available</option>
+          {% endfor %}
+        </select>
+        <button type="button" class="section-btn remove-section" title="Remove">
+          <i class="bi bi-dash-lg"></i>
+        </button>
+      </div>
+    </div>
 
-          <!-- Due Date -->
-          <label class="label" for="dueDate">Due Date</label>
-          <div class="field with-icon">
-            <input type="date" id="dueDate" name="dueDate">
-            <i id="dateIcon" class="bi bi-calendar3 field-icon"></i>
-          </div>
+    <!-- Add button below all dropdowns -->
+    <button type="button" id="addSectionBtn" class="btn-add-section">
+      <i class="bi bi-plus-circle"></i> Add Another Section
+    </button>
 
-          <!-- Status -->
-          <div class="row-inline">
-            <span class="label m-0">Status</span>
-            <label class="switch">
-              <input type="checkbox" id="statusToggle" name="status">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </form>
+    <input type="hidden" id="selectedSectionsInput" name="selectedSections" required>
+  </div>
+
+  <!-- Due Date -->
+  <label class="label" for="dueDate">Due Date</label>
+  <div class="field with-icon">
+    <input type="date" id="dueDate" name="dueDate">
+    <i id="dateIcon" class="bi bi-calendar3 field-icon"></i>
+  </div>
+
+</form>
       </aside>
     </div>
 
@@ -167,6 +173,44 @@
       <button id="btnBack" class="btn btn-ghost">Back to Dashboard</button>
     </div>
   </div>
+
+<!-- Publish Confirmation Modal -->
+<div id="publishModalOverlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-check-circle me-2"></i>Confirm Publish
+      </div>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to publish this survey?</p>
+      <p><small class="text-muted">Once published, students will be able to see and answer this survey.</small></p>
+    </div>
+    <div class="modal-footer">
+      <button id="publishModalCancel" class="btn btn-ghost">Cancel</button>
+      <button id="publishModalConfirm" class="btn btn-primary">Publish Survey</button>
+    </div>
+  </div>
+</div>
+
+<!-- Back Confirmation Modal -->
+<div id="backModalOverlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-exclamation-triangle me-2"></i>Unsaved Changes
+      </div>
+    </div>
+    <div class="modal-body">
+      <p>You have unsaved changes. Are you sure you want to leave?</p>
+      <p><small class="text-danger">Your changes will be lost if you don't save them.</small></p>
+    </div>
+    <div class="modal-footer">
+      <button id="backModalCancel" class="btn btn-ghost">Stay</button>
+      <button id="backModalConfirm" class="btn btn-primary">Leave</button>
+    </div>
+  </div>
+</div>
 
   <!-- Modal: New Survey -->
   <div id="modalOverlay" class="modal-overlay">
@@ -185,6 +229,25 @@
       </div>
     </div>
   </div>
+
+<!-- Save Draft Confirmation Modal -->
+<div id="saveDraftModalOverlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-save me-2"></i>Save as Draft
+      </div>
+    </div>
+    <div class="modal-body">
+      <p>Save this survey as a draft?</p>
+      <p><small class="text-muted">You can continue editing it later before publishing.</small></p>
+    </div>
+    <div class="modal-footer">
+      <button id="saveDraftModalCancel" class="btn btn-ghost">Cancel</button>
+      <button id="saveDraftModalConfirm" class="btn btn-primary">Save Draft</button>
+    </div>
+  </div>
+</div>
 
   <!-- Scripts -->
   <script src="{% static 'main/Javascript/surveyBuilder_admin.js' %}"></script>

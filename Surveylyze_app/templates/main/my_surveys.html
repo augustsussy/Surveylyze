@@ -113,7 +113,7 @@
                   </div>
 
                   <div class="survey-actions">
-                    <a href="{% url 'survey_builder' %}?edit={{ survey.survey_id }}" class="btn btn-edit">
+                    <a href="{% url 'survey_builder' %}?survey_id={{ survey.survey_id }}" class="btn btn-edit">
                       <i class="bi bi-pencil"></i> Edit
                     </a>
                     <button

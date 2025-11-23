@@ -61,8 +61,21 @@ body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -app
 }
 
 .card-lite canvas {
-  max-height: 220px !important;
+  min-height: 220px !important;
   height: 220px !important;
+  max-height: 260px !important;
+}
+
+/* Specific fix for Likert canvases */
+canvas[id^="likert-"] {
+  height: 260px !important;
+  min-height: 260px !important;
+  display: block !important;
+}
+
+/* Ensure parent has height */
+.card-lite .row {
+  min-height: 280px;
 }
 
 #agreementBar {

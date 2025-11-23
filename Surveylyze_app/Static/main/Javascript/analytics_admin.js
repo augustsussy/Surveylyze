@@ -86,6 +86,91 @@ function renderAnalytics(DATA) {
   });
 }
 
+function renderLikertChart(q) {
+  const canvas = document.getElementById(`likert-${q.question_id}`);
+  if (!canvas) {
+    console.error("Canvas not found for likert chart:", `likert-${q.question_id}`);
+    return;
+  }
+
+  console.log("📊 Rendering Likert chart for question:", q.question_id);
+  console.log("Agreement levels data:", q.agreement_levels);
+
+  const hasData = Object.values(q.agreement_levels).some(v => v > 0);
+
+  if (!hasData) {
+    console.log("⚠️ No data for Likert chart");
+    canvas.parentElement.innerHTML = `
+      <h6 class="mb-3">Agreement Distribution</h6>
+      <div style="text-align: center; padding: 40px; color: #999;">No responses yet</div>
+    `;
+    return;
+  }
+
+  // ✅ Ensure parent container has proper height
+  const parentDiv = canvas.parentElement;
+  if (parentDiv) {
+    parentDiv.style.minHeight = '300px';
+    parentDiv.style.position = 'relative';
+  }
+
+  // ✅ Set canvas dimensions explicitly
+  canvas.style.height = '260px';
+  canvas.style.maxHeight = '260px';
+  canvas.style.width = '100%';
+
+  console.log("✅ Creating Likert chart with data:", Object.values(q.agreement_levels));
+
+  try {
+    new Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: Object.keys(q.agreement_levels),
+        datasets: [{
+          label: 'Responses',
+          data: Object.values(q.agreement_levels),
+          backgroundColor: ['#e85d5d', '#ff9a76', '#ffd966', '#90d890', '#63c665'],
+          borderWidth: 0,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            }
+          },
+          x: {
+            ticks: {
+              font: { size: 11, weight: 600 },
+              maxRotation: 45,
+              minRotation: 0
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `Responses: ${context.parsed.y}`;
+              }
+            }
+          }
+        }
+      }
+    });
+    console.log("✅ Likert chart created successfully");
+  } catch (error) {
+    console.error("❌ Error creating Likert chart:", error);
+  }
+}
+
 function createQuestionCard(q, questionNumber) {
   // Main card
   const card = document.createElement("div");
@@ -142,6 +227,8 @@ function createQuestionCard(q, questionNumber) {
       renderLikertChart(q);
     }, 0);
   }
+
+
 
   // === MCQ → PIE CHART ===
   else if (q.question_type === 'mcq') {
