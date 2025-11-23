@@ -53,14 +53,40 @@ function renderAnalytics(DATA) {
   // Clear container
   container.innerHTML = '';
 
-  // Render each question
-  DATA.question_analytics.forEach((q, index) => {
-    const questionCard = createQuestionCard(q, index);
-    container.appendChild(questionCard);
+  // Group questions by survey
+  const surveyGroups = {};
+  DATA.question_analytics.forEach(q => {
+    if (!surveyGroups[q.survey_title]) {
+      surveyGroups[q.survey_title] = [];
+    }
+    surveyGroups[q.survey_title].push(q);
+  });
+
+  // Render each survey group
+  Object.entries(surveyGroups).forEach(([surveyTitle, questions]) => {
+    // Sort questions by order_number
+    questions.sort((a, b) => a.order_number - b.order_number);
+
+    // Add survey header
+    const surveyHeader = document.createElement("div");
+    surveyHeader.className = "survey-header";
+    surveyHeader.innerHTML = `
+      <h3 class="survey-title">
+        <i class="bi bi-clipboard-data"></i> ${surveyTitle}
+      </h3>
+      <div class="survey-subtitle">${questions.length} question${questions.length > 1 ? 's' : ''} • ${questions[0].response_count} response${questions[0].response_count > 1 ? 's' : ''}</div>
+    `;
+    container.appendChild(surveyHeader);
+
+    // Render each question with incremental numbering
+    questions.forEach((q, index) => {
+      const questionCard = createQuestionCard(q, index + 1); // Use index + 1 for incremental numbering
+      container.appendChild(questionCard);
+    });
   });
 }
 
-function createQuestionCard(q, index) {
+function createQuestionCard(q, questionNumber) {
   // Main card
   const card = document.createElement("div");
   card.className = "card card-lite p-3 mb-3";
@@ -72,10 +98,10 @@ function createQuestionCard(q, index) {
     <div style="display: flex; justify-content: space-between; align-items: start;">
       <div>
         <h5 style="margin: 0 0 4px 0; color: #4c3f8f; font-weight: 700;">
-          Question ${q.order_number}: ${q.question_text}
+          Question ${questionNumber}: ${q.question_text}
         </h5>
         <small style="color: #999; font-weight: 600;">
-          ${q.survey_title} • ${q.response_count} response${q.response_count > 1 ? 's' : ''}
+          ${q.response_count} response${q.response_count > 1 ? 's' : ''}
         </small>
       </div>
       <span style="background: #e8dbff; color: #4c3f8f; padding: 4px 12px; border-radius: 12px; font-weight: 700; font-size: 12px;">
@@ -230,7 +256,6 @@ function renderLikertChart(q) {
       labels: Object.keys(q.agreement_levels),
       datasets: [{
         label: 'Responses',
-
         data: Object.values(q.agreement_levels),
         backgroundColor: ['#e85d5d', '#ff9a76', '#ffd966', '#90d890', '#63c665'],
         borderWidth: 0,
