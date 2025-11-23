@@ -56,14 +56,6 @@
   </button>
 </form>
 
-<script>
-  document.getElementById('logout-button').addEventListener('click', function() {
-    if (confirm('Are you sure you want to logout?')) {
-      document.getElementById('logout-form').submit();
-    }
-  });
-</script>
-
       </nav>
     </aside>
 
@@ -281,5 +273,64 @@ document.addEventListener("DOMContentLoaded", () => {
   <script>
     lucide.createIcons();
   </script>
+
+    <!-- Logout Confirmation Modal -->
+  <div id="logout-modal" class="logout-modal-overlay">
+    <div class="logout-modal">
+      <div class="logout-modal-header">
+        <i data-lucide="log-out" class="logout-icon"></i>
+        <h3>Confirm Logout</h3>
+      </div>
+      <div class="logout-modal-body">
+        <p>Are you sure you want to logout?</p>
+      </div>
+      <div class="logout-modal-footer">
+        <button class="logout-modal-btn cancel" id="logout-cancel">Cancel</button>
+        <button class="logout-modal-btn confirm" id="logout-confirm">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Lucide icons first
+    lucide.createIcons();
+
+    // Logout confirmation logic (wrapped in DOMContentLoaded to prevent bugs)
+    document.addEventListener('DOMContentLoaded', function() {
+      const logoutButton = document.getElementById('logout-button');
+      const logoutForm = document.getElementById('logout-form');
+      const logoutModal = document.getElementById('logout-modal');
+      const logoutCancel = document.getElementById('logout-cancel');
+      const logoutConfirm = document.getElementById('logout-confirm');
+
+      if (logoutButton && logoutModal && logoutForm) {
+        // Show modal when logout button is clicked
+        logoutButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          logoutModal.classList.add('show');
+        });
+
+        // Hide modal when cancel is clicked
+        logoutCancel.addEventListener('click', function() {
+          logoutModal.classList.remove('show');
+        });
+
+        // Submit form when confirm is clicked
+        logoutConfirm.addEventListener('click', function() {
+          logoutForm.submit();
+        });
+
+        // Close modal when clicking outside
+        logoutModal.addEventListener('click', function(e) {
+          if (e.target === logoutModal) {
+            logoutModal.classList.remove('show');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
+
 </body>
 </html>
