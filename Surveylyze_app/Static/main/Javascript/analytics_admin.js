@@ -80,7 +80,7 @@ function renderAnalytics(DATA) {
 
     // Render each question with incremental numbering
     questions.forEach((q, index) => {
-      const questionCard = createQuestionCard(q, index + 1); // Use index + 1 for incremental numbering
+      const questionCard = createQuestionCard(q, index + 1);
       container.appendChild(questionCard);
     });
   });
@@ -114,34 +114,27 @@ function createQuestionCard(q, questionNumber) {
   // Content area
   const content = document.createElement("div");
 
-  // === SHORT ANSWER ===
+  // === SHORT ANSWER → WORD CLOUD ===
   if (q.question_type === 'short_answer') {
+    const canvasId = `wordcloud-${q.question_id}`;
     content.innerHTML = `
-      <div class="row g-3">
-        <div class="col-12 col-lg-6">
-          <h6 class="mb-3">Sentiment Analysis</h6>
-          <canvas id="sentiment-${q.question_id}" style="max-height: 220px;"></canvas>
-        </div>
-        <div class="col-12 col-lg-6">
-          <h6 class="mb-3">Common Keywords</h6>
-          <div id="keywords-${q.question_id}" class="tagcloud"></div>
-        </div>
+      <h6 class="mb-3">Frequency affects size</h6>
+      <div class="wordcloud-container">
+        <canvas id="${canvasId}" width="800" height="400"></canvas>
       </div>
     `;
     card.appendChild(content);
 
-    // Render after adding to DOM
     setTimeout(() => {
-      renderSentimentChart(q);
-      renderKeywords(q);
-    }, 0);
+      renderWordCloud(q, canvasId);
+    }, 100);
   }
 
-  // === LIKERT SCALE ===
+  // === LIKERT SCALE → BAR CHART ===
   else if (q.question_type === 'likert' || q.question_type === 'likert_scale') {
     content.innerHTML = `
       <h6 class="mb-3">Agreement Distribution</h6>
-      <canvas id="likert-${q.question_id}" style="max-height: 260px;"></canvas>
+      <canvas id="likert-${q.question_id}" style="max-height: 300px;"></canvas>
     `;
     card.appendChild(content);
 
@@ -150,16 +143,18 @@ function createQuestionCard(q, questionNumber) {
     }, 0);
   }
 
-  // === MCQ ===
+  // === MCQ → PIE CHART ===
   else if (q.question_type === 'mcq') {
     content.innerHTML = `
       <h6 class="mb-3">Response Distribution</h6>
-      <canvas id="mcq-${q.question_id}" style="max-height: 260px;"></canvas>
+      <div style="max-width: 500px; margin: 0 auto;">
+        <canvas id="mcq-${q.question_id}" style="max-height: 350px;"></canvas>
+      </div>
     `;
     card.appendChild(content);
 
     setTimeout(() => {
-      renderMCQChart(q);
+      renderMCQPieChart(q);
     }, 0);
   }
 
@@ -169,112 +164,169 @@ function createQuestionCard(q, questionNumber) {
 // ==========================================
 // CHART RENDERERS
 // ==========================================
-function renderSentimentChart(q) {
-  const canvas = document.getElementById(`sentiment-${q.question_id}`);
-  if (!canvas) return;
 
-  const hasData = Object.values(q.sentiment).some(v => v > 0);
+function renderWordCloud(q, canvasId) {
+  const container = document.getElementById(canvasId);
+  if (!container) {
+    console.error(`Container ${canvasId} not found`);
+    return;
+  }
 
-  if (!hasData) {
-    canvas.parentElement.innerHTML = `
-      <h6 class="mb-3">Sentiment Analysis</h6>
-      <div style="text-align: center; padding: 40px; color: #999;">No sentiment data</div>
+  const keywords = q.keywords || {};
+  const wordList = Object.entries(keywords);
+
+  // ✅ No keywords at all
+  if (wordList.length === 0) {
+    container.parentElement.innerHTML = `
+      <h6 class="mb-3">Response Word Cloud</h6>
+      <div style="text-align: center; padding: 60px; color: #999; background: #f8f9fa; border-radius: 12px;">
+        No keywords available
+      </div>
     `;
     return;
   }
 
-  new Chart(canvas, {
-    type: "pie",
-    data: {
-      labels: Object.keys(q.sentiment),
-      datasets: [{
-        data: Object.values(q.sentiment),
-        backgroundColor: ['#63c665', '#a36bf2', '#e85d5d'],
-        borderWidth: 2,
-        borderColor: '#fff'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "bottom" },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const label = context.label || '';
-              const value = context.parsed || 0;
-              const total = context.dataset.data.reduce((a, b) => a + b, 0);
-              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-              return `${label}: ${value} (${percentage}%)`;
-            }
-          }
+  // ✅ Create interactive word cloud (NO THRESHOLD CHECK)
+  const maxFreq = Math.max(...wordList.map(([, freq]) => freq));
+  const minFreq = Math.min(...wordList.map(([, freq]) => freq));
+
+  // Calculate font sizes (20px to 56px range for better visibility with few words)
+  const getFontSize = (freq) => {
+    if (maxFreq === minFreq) return 38; // Single frequency - medium size
+    const ratio = (freq - minFreq) / (maxFreq - minFreq);
+    return 20 + (ratio * 36); // 20px to 56px
+  };
+
+  // Color palette
+  const colors = ['#B57EDC', '#9B6BC7', '#8B5CB8', '#7B4DA9', '#6B3E9A'];
+
+  // Shuffle word list for visual variety (not just by frequency)
+  const shuffledWords = [...wordList].sort(() => Math.random() - 0.5);
+
+  // Create word cloud HTML
+  const wordCloudHTML = shuffledWords
+    .map(([word, freq]) => {
+      const fontSize = getFontSize(freq);
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      return `
+        <span
+          class="word-cloud-word"
+          data-word="${word}"
+          data-freq="${freq}"
+          style="font-size: ${fontSize}px; color: ${color};"
+        >
+          ${word}
+        </span>
+      `;
+    })
+    .join('');
+
+  container.parentElement.innerHTML = `
+    <div class="wordcloud-container" id="wordcloud-${q.question_id}">
+      ${wordCloudHTML}
+    </div>
+    <div class="word-tooltip" id="tooltip-${q.question_id}"></div>
+    <div class="popup-overlay" id="overlay-${q.question_id}"></div>
+    <div class="word-detail-popup" id="popup-${q.question_id}">
+      <div class="popup-header">Word Frequency</div>
+      <div class="popup-count" id="popup-count-${q.question_id}">0</div>
+      <div class="popup-label">responses contain "<span id="popup-word-${q.question_id}"></span>"</div>
+      <button class="popup-close" id="close-btn-${q.question_id}">Close</button>
+    </div>
+  `;
+
+  // Add interactivity
+  setTimeout(() => {
+    const words = document.querySelectorAll(`#wordcloud-${q.question_id} .word-cloud-word`);
+    const tooltip = document.getElementById(`tooltip-${q.question_id}`);
+    const popup = document.getElementById(`popup-${q.question_id}`);
+    const overlay = document.getElementById(`overlay-${q.question_id}`);
+    const wordCloudContainer = document.getElementById(`wordcloud-${q.question_id}`);
+
+    words.forEach(wordEl => {
+      // Hover effect - show tooltip
+      wordEl.addEventListener('mouseenter', (e) => {
+        const word = wordEl.dataset.word;
+        const freq = wordEl.dataset.freq;
+        tooltip.textContent = `"${word}" - ${freq} time${freq > 1 ? 's' : ''}`;
+        tooltip.classList.add('show');
+      });
+
+      wordEl.addEventListener('mousemove', (e) => {
+        tooltip.style.left = `${e.pageX}px`;
+        tooltip.style.top = `${e.pageY - 40}px`;
+      });
+
+      wordEl.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('show');
+      });
+
+      // Click effect - show popup
+      wordEl.addEventListener('click', () => {
+        const word = wordEl.dataset.word;
+        const freq = wordEl.dataset.freq;
+
+        document.getElementById(`popup-word-${q.question_id}`).textContent = word;
+        document.getElementById(`popup-count-${q.question_id}`).textContent = freq;
+
+        popup.classList.add('show');
+        overlay.classList.add('show');
+      });
+    });
+
+    overlay.addEventListener('click', () => {
+      popup.classList.remove('show');
+      overlay.classList.remove('show');
+    });
+
+    const closeBtn = document.getElementById(`close-btn-${q.question_id}`);
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        popup.classList.remove('show');
+        overlay.classList.remove('show');
+      });
+    }
+
+    // Magnetic effect - words subtly follow cursor
+
+    // Magnetic effect - words subtly follow cursor
+    wordCloudContainer.addEventListener('mousemove', (e) => {
+      const rect = wordCloudContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      words.forEach(wordEl => {
+        const wordRect = wordEl.getBoundingClientRect();
+        const wordX = wordRect.left - rect.left + wordRect.width / 2;
+        const wordY = wordRect.top - rect.top + wordRect.height / 2;
+
+        const deltaX = x - wordX;
+        const deltaY = y - wordY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        // Only affect words within 200px (increased from 150px for better effect)
+        if (distance < 200) {
+          const force = (200 - distance) / 200;
+          const moveX = (deltaX / distance) * force * 12; // Increased from 8
+          const moveY = (deltaY / distance) * force * 12;
+
+          wordEl.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        } else {
+          wordEl.style.transform = 'translate(0, 0)';
         }
-      }
-    }
-  });
+      });
+    });
+
+    // Reset positions when mouse leaves
+    wordCloudContainer.addEventListener('mouseleave', () => {
+      words.forEach(wordEl => {
+        wordEl.style.transform = 'translate(0, 0)';
+      });
+    });
+  }, 100);
 }
 
-function renderKeywords(q) {
-  const container = document.getElementById(`keywords-${q.question_id}`);
-  if (!container) return;
-
-  const keywords = Object.entries(q.keywords || {});
-
-  if (keywords.length === 0) {
-    container.innerHTML = '<span style="color: #999;">No keywords available</span>';
-    return;
-  }
-
-  container.innerHTML = '';
-  keywords.sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([word, freq]) => {
-    const tag = document.createElement("span");
-    tag.className = "tag";
-    tag.textContent = word;
-    tag.title = `${freq} mention${freq > 1 ? 's' : ''}`;
-    container.appendChild(tag);
-  });
-}
-
-function renderLikertChart(q) {
-  const canvas = document.getElementById(`likert-${q.question_id}`);
-  if (!canvas) return;
-
-  const hasData = Object.values(q.agreement_levels).some(v => v > 0);
-
-  if (!hasData) {
-    canvas.parentElement.innerHTML = `
-      <h6 class="mb-3">Agreement Distribution</h6>
-      <div style="text-align: center; padding: 40px; color: #999;">No responses yet</div>
-    `;
-    return;
-  }
-
-  new Chart(canvas, {
-    type: "bar",
-    data: {
-      labels: Object.keys(q.agreement_levels),
-      datasets: [{
-        label: 'Responses',
-        data: Object.values(q.agreement_levels),
-        backgroundColor: ['#e85d5d', '#ff9a76', '#ffd966', '#90d890', '#63c665'],
-        borderWidth: 0,
-        borderRadius: 6
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1 } },
-        x: { ticks: { font: { size: 11, weight: 600 } } }
-      },
-      plugins: { legend: { display: false } }
-    }
-  });
-}
-
-function renderMCQChart(q) {
+function renderMCQPieChart(q) {
   const canvas = document.getElementById(`mcq-${q.question_id}`);
   if (!canvas) return;
 
@@ -288,26 +340,60 @@ function renderMCQChart(q) {
     return;
   }
 
+  // Color palette for pie chart
+  const colors = [
+    '#B57EDC', // Purple
+    '#9B6BC7', // Dark Purple
+    '#63c665', // Green
+    '#ffd966', // Yellow
+    '#ff9a76', // Orange
+    '#e85d5d', // Red
+    '#5da5ff', // Blue
+    '#ff6b9d', // Pink
+  ];
+
   new Chart(canvas, {
-    type: "bar",
+    type: "pie",
     data: {
       labels: Object.keys(q.mcq_distribution),
       datasets: [{
-        label: 'Responses',
         data: Object.values(q.mcq_distribution),
-        backgroundColor: '#B57EDC',
-        borderWidth: 0,
-        borderRadius: 6
+        backgroundColor: colors,
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        hoverBorderWidth: 4,
+        hoverBorderColor: '#ffffff'
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      indexAxis: 'y', // Horizontal bars
-      scales: {
-        x: { beginAtZero: true, ticks: { stepSize: 1 } }
-      },
-      plugins: { legend: { display: false } }
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            font: { size: 13, weight: 600 },
+            padding: 15,
+            boxWidth: 20,
+            boxHeight: 20
+          }
+        },
+        tooltip: {
+          backgroundColor: '#1f1f29',
+          padding: 12,
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      }
     }
   });
 }

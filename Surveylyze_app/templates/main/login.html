@@ -12,21 +12,19 @@
     <div class="form-box">
       <h2>Login</h2>
 
+      {% if messages %}
+        {% for message in messages %}
+          {% if message.tags == "error" %}
+            <div class="error-messages">
+              <p style="color:red; margin:.5rem 0">{{ message }}</p>
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
       <!-- Post back to the same page -->
       <form method="POST" action="">
         {% csrf_token %}
-
-{% if messages %}
-  <div class="error-messages">
-    {% for message in messages %}
-      {% if message.tags == "error" %}
-        <p class="error-text">{{ message }}</p>
-      {% endif %}
-    {% endfor %}
-  </div>
-{% endif %}
-
-
 
         <input type="hidden" name="next" value="{{ request.GET.next }}">
         <input type="email" name="email" placeholder="Email" required autofocus>
@@ -36,7 +34,7 @@
       </form>
 
       <p class="redirect">
-        Don’t have an account?
+        Don't have an account?
         <a href="{% url 'addStudentForm' %}">Signup</a>
       </p>
     </div>

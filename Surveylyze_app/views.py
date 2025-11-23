@@ -274,12 +274,15 @@ def analytics_admin(request):
                 shortanswer_text=''
             ).values_list('shortanswer_text', flat=True)
 
+            # Convert queryset to list for processing
+            text_answers_list = list(text_answers)
+
             # Sentiment analysis
             positive_count = 0
             negative_count = 0
             neutral_count = 0
 
-            for text in text_answers:
+            for text in text_answers_list:
                 text_lower = text.lower()
                 has_positive = any(word in text_lower for word in positive_words)
                 has_negative = any(word in text_lower for word in negative_words)
@@ -298,13 +301,16 @@ def analytics_admin(request):
             }
 
             # Keywords
-            all_text = ' '.join(text_answers)
+            all_text = ' '.join(text_answers_list)
             words = re.findall(r'\b[a-z]{3,}\b', all_text.lower())
             filtered_words = [w for w in words if w not in stop_words]
             word_counts = Counter(filtered_words)
             q_data['keywords'] = dict(word_counts.most_common(15))
 
-            q_data['response_count'] = len(text_answers)
+            # ✅ Include raw responses for display when count is low
+            q_data['raw_responses'] = text_answers_list
+
+            q_data['response_count'] = len(text_answers_list)
 
         # === LIKERT QUESTIONS ===
         elif question.question_type in ['likert', 'likert_scale']:

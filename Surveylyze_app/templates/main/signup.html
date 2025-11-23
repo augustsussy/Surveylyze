@@ -12,15 +12,18 @@
   <section class="auth-container">
     <div class="form-box">
       <h2>Signup</h2>
-    {% if messages %}
-  <div class="error-messages">
-    {% for message in messages %}
-      <p class="error-text">{{ message }}</p>
-    {% endfor %}
-  </div>
+
+{% if messages %}
+  {% for message in messages %}
+    {% if message.tags == "error" %}
+      <div class="error-messages">
+        <p style="color:red; margin:.5rem 0">{{ message }}</p>
+      </div>
+    {% endif %}
+  {% endfor %}
 {% endif %}
 
-     <form method="POST" action="{% url 'savesignup' %}">
+<form method="POST" action="{% url 'savesignup' %}">
   {% csrf_token %}
 
 
