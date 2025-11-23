@@ -18,6 +18,26 @@
   <link rel="stylesheet" href="{% static 'main/Css/analytics_admin.css' %}">
 </head>
 <body>
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="logout-overlay" style="display:none;">
+  <div class="logout-box">
+    <div class="logout-icon">
+      <i class="bi bi-box-arrow-right"></i>
+    </div>
+    <h4 class="logout-title">Confirm Logout</h4>
+    <p class="logout-text">Are you sure you want to logout?</p>
+
+    <div class="logout-actions">
+      <button id="logoutCancel" class="btn btn-secondary px-4">Cancel</button>
+
+      <form id="logoutForm" action="{% url 'logout' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger px-4">Logout</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div id="analytics-data" style="display:none;"
      data-metrics="{{ metrics }}"
      data-question-analytics="{{ question_analytics }}">

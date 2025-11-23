@@ -370,3 +370,51 @@ body{background:var(--bg); color:var(--text); font-family:Inter, system-ui, -app
   max-width: 100%;
   height: auto !important;
 }
+
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-family: 'Inter', sans-serif;
+}
+
+.logout-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 30px 32px;
+  width: 380px;
+  text-align: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.logout-icon {
+  font-size: 42px;
+  color: #d9534f;
+  margin-bottom: 10px;
+}
+
+.logout-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.logout-text {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.logout-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+@keyframes fadeIn {
+  from { transform: scale(.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
