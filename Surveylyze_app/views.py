@@ -597,6 +597,17 @@ def dashboard(request):
 
     # 🔹 Assigned (to show in "ASSIGNED SURVEY" card): base − answered_by_this_student
     assigned_surveys = base_surveys.exclude(survey_id__in=answered_ids).order_by("due_date", "title")
+    # Assigned Survey search
+    assigned_search = request.GET.get("search_survey", "").strip()
+    if assigned_search:
+        assigned_surveys = assigned_surveys.filter(title__icontains=assigned_search)
+
+    # Assigned Survey sort
+    assigned_sort = request.GET.get("sort_survey", "newest")
+    if assigned_sort == "oldest":
+        assigned_surveys = assigned_surveys.order_by("due_date", "title")
+    else:
+        assigned_surveys = assigned_surveys.order_by("-due_date", "title")
 
     # 🔹 Response history (only THIS student's attempts)
     responses = models.SurveyHistory.objects.filter(

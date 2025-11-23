@@ -55,19 +55,6 @@
               {{ history.submitted_at|date:"F d, Y - h:i A" }}
             </div>
           </div>
-
-          <div class="info-row">
-            <div class="info-label">
-              <i class="bi bi-clock"></i> Duration
-            </div>
-            <div class="info-value">
-              {% if history.duration %}
-                {{ history.duration }} seconds
-              {% else %}
-                Not recorded
-              {% endif %}
-            </div>
-          </div>
         </div>
 
         <div class="responses-section">

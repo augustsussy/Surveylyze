@@ -72,78 +72,155 @@
       <h2 class="title">STUDENT DASHBOARD</h2>
       <div class="dashboard-grid">
 
-        <!-- RESPONSE HISTORY -->
-        <div class="card history">
-          <h3>RESPONSE HISTORY</h3>
+<!-- RESPONSE HISTORY -->
+<div class="card history">
+  <h3>RESPONSE HISTORY</h3>
 
-          <!-- Search + filters form -->
+  <!-- Search + filters form -->
+  <form method="get" class="search-filter">
+    <div class="filter-row">
+
+      <!-- Search -->
+      <input type="text"
+             name="q"
+             placeholder="Search by title"
+             class="search-bar"
+             value="{{ request.GET.q }}">
+
+      <!-- Sort -->
+      <select name="order" id="sort_history">
+        <option value="newest"
+          {% if request.GET.order == "newest" or not request.GET.order %}
+            selected
+          {% endif %}>
+          Newest
+        </option>
+
+        <option value="oldest"
+          {% if request.GET.order == "oldest" %}
+            selected
+          {% endif %}>
+          Oldest
+        </option>
+      </select>
+
+      <!-- Auto-submit script -->
+      <script>
+        document.addEventListener("DOMContentLoaded", () => {
+          const sortHistory = document.getElementById("sort_history");
+          if (sortHistory) {
+            sortHistory.addEventListener("change", () => {
+              sortHistory.form.submit();
+            });
+          }
+        });
+      </script>
+
+      <!-- Filter button -->
+      <button type="submit" class="btn-filter">
+        <i data-lucide="funnel"></i>
+        <span>Filter</span>
+      </button>
+
+      <!-- Clear -->
+      <a href="{% url 'admin_responses' %}" class="btn-clear">
+        <i data-lucide="x-circle"></i>
+        <span>Clear</span>
+      </a>
+
+    </div>
+  </form>
+
+  <div class="response-table">
+    <div class="table-row header">
+      <div class="col">Survey</div>
+      <div class="col">Date</div>
+      <div class="col">Status</div>
+    </div>
+
+    <div class="table-body">
+      {% if responses %}
+        {% for history in responses %}
+          <div class="table-row">
+            <div class="col">
+              <a href="{% url 'response_history' history.history_id %}"
+                 class="response-link">
+                {{ history.survey.title }}
+              </a>
+            </div>
+            <div class="col">
+              {{ history.submitted_at|date:"F d, Y" }}
+            </div>
+            <div class="col status completed">Completed</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="table-row">
+          <div class="col">No responses found.</div>
+          <div class="col"></div>
+          <div class="col"></div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+        <!-- ASSIGNED SURVEYS -->
+        <div class="card assigned-surveys">
+          <h3>ASSIGNED SURVEY</h3>
 <form method="get" class="search-filter">
   <div class="filter-row">
-    <input type="text" name="q" placeholder="Search by title" class="search-bar" value="{{ request.GET.q }}">
 
-    <select name="order">
-      <option value="newest" {% if request.GET.order == "newest" or not request.GET.order %}selected{% endif %}>Newest</option>
-      <option value="oldest" {% if request.GET.order == "oldest" %}selected{% endif %}>Oldest</option>
-    </select>
+    <input type="text"
+           name="search_survey"
+           placeholder="Search by title"
+           class="search-bar"
+           value="{{ request.GET.search_survey }}">
+
+<select name="sort_survey" id="sort_survey_assigned">
+
+
+  <option value="newest"
+    {% if request.GET.sort_survey == "newest" or not request.GET.sort_survey %}
+      selected
+    {% endif %}>
+    Newest
+  </option>
+
+  <option value="oldest"
+    {% if request.GET.sort_survey == "oldest" %}
+      selected
+    {% endif %}>
+    Oldest
+  </option>
+
+</select>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const sortAssigned = document.getElementById("sort_survey_assigned");
+  if (sortAssigned) {
+    sortAssigned.addEventListener("change", () => {
+      sortAssigned.form.submit();
+    });
+  }
+});
+</script>
+
+
 
     <button type="submit" class="btn-filter">
       <i data-lucide="funnel"></i>
       <span>Filter</span>
     </button>
 
-    <a href="{% url 'admin_responses' %}" class="btn-clear">
+    <a href="{% url 'dashboard' %}" class="btn-clear">
       <i data-lucide="x-circle"></i>
       <span>Clear</span>
     </a>
+
   </div>
-
-  <button type="submit" class="search-submit" style="display:none;"></button>
 </form>
-
-            <!-- status filter is just visual for now -->
-            <!-- hidden button so Enter in the input submits the form -->
-            <button type="submit" class="search-submit" style="display:none;"></button>
-          </form>
-
-          <div class="response-table">
-            <div class="table-row header">
-              <div class="col">Survey</div>
-              <div class="col">Date</div>
-              <div class="col">Status</div>
-            </div>
-
-            <div class="table-body">
-              {% if responses %}
-                {% for history in responses %}
-                  <div class="table-row">
-                    <div class="col">
-                      <a href="{% url 'response_history' history.history_id %}"
-                         class="response-link">
-                        {{ history.survey.title }}
-                      </a>
-                    </div>
-                    <div class="col">
-                      {{ history.submitted_at|date:"F d, Y" }}
-                    </div>
-                    <div class="col status completed">
-                      Completed
-                    </div>
-                  </div>
-                {% endfor %}
-              {% else %}
-                <div class="table-row">
-                  <div class="col">No responses found.</div>
-                  <div class="col"></div>
-                  <div class="col"></div>
-                </div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <!-- ASSIGNED SURVEYS -->
-        <div class="card assigned-surveys">
-          <h3>ASSIGNED SURVEY</h3>
 
           {% if surveys %}
             <div class="survey-card-list">

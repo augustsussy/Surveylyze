@@ -372,7 +372,7 @@ body {
 
 /* Table structure */
 .response-table {
-  max-height: 300px;
+  max-height: 380px;
   overflow-y: auto;
   border-radius: 10px;
     padding-right: 8px;
